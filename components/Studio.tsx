@@ -16,10 +16,10 @@ import { T } from '@/lib/tokens';
 import { Btn } from './kit';
 import { Says } from './parts';
 import {
-  Refused, loadAssets, loadCast, loadSets, loadShoots, loadWardrobe,
+  Refused, loadAssets, loadCast, loadSets, loadShoots, loadVoices, loadWardrobe,
 } from '@/lib/data';
-import type { Asset, Identity, Outfit, SetRow, Shoot } from '@/lib/types';
-import { DEMO, demoAssets, demoCast, demoOutfits, demoSets, demoShoots } from '@/lib/demo';
+import type { Asset, Identity, Outfit, SetRow, Shoot, VoiceRow } from '@/lib/types';
+import { DEMO, demoAssets, demoCast, demoOutfits, demoSets, demoShoots, demoVoices } from '@/lib/demo';
 import CastRoom from './CastRoom';
 import WardrobeRoom from './WardrobeRoom';
 import SetsRoom from './SetsRoom';
@@ -43,6 +43,7 @@ export type Library = {
   outfits: Outfit[];
   sets: SetRow[];
   shoots: Shoot[];
+  voices: VoiceRow[];
   reload: () => Promise<void>;
 };
 
@@ -57,19 +58,20 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [sets, setSets] = useState<SetRow[]>([]);
   const [shoots, setShoots] = useState<Shoot[]>([]);
+  const [voices, setVoices] = useState<VoiceRow[]>([]);
 
   const reload = useCallback(async () => {
     setSays(null);
     if (DEMO) {
       setCast(demoCast); setAssets(demoAssets); setOutfits(demoOutfits);
-      setSets(demoSets); setShoots(demoShoots); setLoading(false);
+      setSets(demoSets); setShoots(demoShoots); setVoices(demoVoices); setLoading(false);
       return;
     }
     try {
-      const [c, a, w, s, p] = await Promise.all([
-        loadCast(), loadAssets(), loadWardrobe(), loadSets(), loadShoots(),
+      const [c, a, w, s, p, v] = await Promise.all([
+        loadCast(), loadAssets(), loadWardrobe(), loadSets(), loadShoots(), loadVoices(),
       ]);
-      setCast(c); setAssets(a); setOutfits(w); setSets(s); setShoots(p);
+      setCast(c); setAssets(a); setOutfits(w); setSets(s); setShoots(p); setVoices(v);
     } catch (e) {
       setSays(e instanceof Refused ? e.message : 'The studio could not read its own shelves.');
     } finally {
@@ -79,7 +81,7 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const lib: Library = { cast, assets, outfits, sets, shoots, reload };
+  const lib: Library = { cast, assets, outfits, sets, shoots, voices, reload };
 
   const navBtn = (active: boolean) => ({
     display: 'block', width: '100%', textAlign: 'left' as const,

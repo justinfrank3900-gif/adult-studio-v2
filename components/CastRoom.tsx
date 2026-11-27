@@ -23,6 +23,7 @@ import { addPerformer, faceOf, keepStill, retirePerformer, savePerformer, seedOf
 import { make } from '@/lib/generate';
 import type { Library } from './Studio';
 import type { Identity } from '@/lib/types';
+import VoicePanel from './VoicePanel';
 
 /* The angles, as sentences rather than as words.
  *
@@ -80,7 +81,7 @@ export default function CastRoom({ lib }: { lib: Library }) {
                   badge={seeded ? null : 'no seed'}
                   tone={seeded ? undefined : 'warn'}
                   note={seeded
-                    ? `${stills} ${stills === 1 ? 'still' : 'stills'}`
+                    ? `${stills} ${stills === 1 ? 'still' : 'stills'}${c.voice_id ? '' : ' - no voice yet'}`
                     : 'Not anchored yet. Shoot her first picture.'}
                   onClick={() => setWho(c.id)}
                 />
@@ -265,6 +266,12 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
           </p>
         </Panel>
       ) : null}
+
+      <VoicePanel
+        who={who}
+        voiceLabel={lib.voices.find((v) => v.id === who.voice_id)?.label ?? null}
+        onChanged={lib.reload}
+      />
 
       <Panel style={{ marginBottom: 18 }}>
         <Area

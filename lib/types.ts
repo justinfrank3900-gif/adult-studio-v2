@@ -9,6 +9,9 @@
 export type Identity = {
   id: string;
   name: string;
+  /** adult_voices.id. Null until she has been given a voice - and until she
+   *  has, nothing can speak her lines. */
+  voice_id: string | null;
   master_ref_asset_ids: string[];
   identity_lock_prompt: string | null;
   is_default: boolean;
@@ -17,6 +20,15 @@ export type Identity = {
    *  later still is an edit of this one, which is the only thing that keeps
    *  a face the same from shot to shot. Kept in meta on the asset row. */
   seed_url?: string | null;
+};
+
+/** adult_voices: how one of them sounds. */
+export type VoiceRow = {
+  id: string;
+  label: string;
+  provider_voice_id: string | null;
+  clone_type: string;
+  status: string | null;
 };
 
 /** adult_assets: a still. */

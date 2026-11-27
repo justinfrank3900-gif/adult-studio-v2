@@ -10,7 +10,7 @@
 // the thing keeping this account's work apart from the dealers'.
 
 import { supa, DEALER_ID, BUCKET } from './supabase';
-import type { Asset, Identity, Outfit, SetRow, Shoot, Take } from './types';
+import type { Asset, Identity, Outfit, SetRow, Shoot, Take, VoiceRow } from './types';
 
 /** The provider's own sentence, kept whole. */
 export class Refused extends Error {}
@@ -31,12 +31,22 @@ export async function token(): Promise<string> {
 export async function loadCast(): Promise<Identity[]> {
   const { data, error } = await supa()
     .from('adult_identities')
-    .select('id,name,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
+    .select('id,name,voice_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
     .eq('dealer_id', DEALER_ID)
     .is('retired_at', null)
     .order('name');
   if (error) hopeless('Reading the cast', error.message);
   return (data || []) as Identity[];
+}
+
+export async function loadVoices(): Promise<VoiceRow[]> {
+  const { data, error } = await supa()
+    .from('adult_voices')
+    .select('id,label,provider_voice_id,clone_type,status')
+    .eq('dealer_id', DEALER_ID)
+    .order('created_at');
+  if (error) hopeless('Reading the voices', error.message);
+  return (data || []) as VoiceRow[];
 }
 
 export async function loadAssets(): Promise<Asset[]> {
@@ -98,7 +108,7 @@ export async function addPerformer(name: string, look: string): Promise<Identity
   const { data, error } = await supa()
     .from('adult_identities')
     .insert({ dealer_id: DEALER_ID, name, identity_lock_prompt: look, master_ref_asset_ids: [] })
-    .select('id,name,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
+    .select('id,name,voice_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
     .single();
   if (error) hopeless('Adding the performer', error.message);
   return data as Identity;

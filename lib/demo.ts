@@ -20,9 +20,9 @@ const pic = (seed: string, w = 600, h = 800) =>
   `https://picsum.photos/seed/${seed}/${w}/${h}`;
 
 export const demoCast: Identity[] = [
-  { id: 'd1', name: 'Samantha', master_ref_asset_ids: [], identity_lock_prompt: "A 27-year-old woman, 5'7\", athletic build with a tiny waist.", is_default: false, retired_at: null },
-  { id: 'd2', name: 'Vicky', master_ref_asset_ids: [], identity_lock_prompt: 'A 25-year-old woman, 5 feet 7 inches tall, dramatically cinched waist.', is_default: false, retired_at: null },
-  { id: 'd3', name: 'Nadia', master_ref_asset_ids: [], identity_lock_prompt: '', is_default: false, retired_at: null },
+  { id: 'd1', name: 'Samantha', voice_id: 'v1', master_ref_asset_ids: [], identity_lock_prompt: "A 27-year-old woman, 5'7\", athletic build with a tiny waist.", is_default: false, retired_at: null },
+  { id: 'd2', name: 'Vicky', voice_id: null, master_ref_asset_ids: [], identity_lock_prompt: 'A 25-year-old woman, 5 feet 7 inches tall, dramatically cinched waist.', is_default: false, retired_at: null },
+  { id: 'd3', name: 'Nadia', voice_id: null, master_ref_asset_ids: [], identity_lock_prompt: '', is_default: false, retired_at: null },
 ];
 
 export const demoAssets: Asset[] = [
@@ -30,6 +30,10 @@ export const demoAssets: Asset[] = [
   { id: 'a2', identity_id: 'd1', kind: 'still', label: 'Close up', public_url: pic('sam2'), storage_path: null, is_master_ref: false, wardrobe: null, angle: 'close', meta: {}, created_at: '2026-11-03T10:00:00Z' },
   { id: 'a3', identity_id: 'd1', kind: 'still', label: 'Full length', public_url: pic('sam3'), storage_path: null, is_master_ref: false, wardrobe: null, angle: 'full', meta: {}, created_at: '2026-11-04T10:00:00Z' },
   { id: 'a4', identity_id: 'd2', kind: 'still', label: 'Straight on', public_url: pic('vic1'), storage_path: null, is_master_ref: true, wardrobe: null, angle: 'front', meta: { spicy_url: 'https://cdn.spicyapi.com/x2.jpg' }, created_at: '2026-11-05T10:00:00Z' },
+];
+
+export const demoVoices = [
+  { id: 'v1', label: 'Samantha - her voice', provider_voice_id: 'eleven_demo', clone_type: 'designed', status: 'ready' },
 ];
 
 export const demoOutfits: Outfit[] = [
