@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adult Studio · TYME</title>
+<style>
+  :root { --bg:#0a0908; --border:rgba(212,175,55,0.15); --text:#f5f3f0; --muted:#a39e96; --gold:#d4af37; --gold-bright:#f0d060; --live:#10b981; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  .ground { position:fixed; inset:0; z-index:-1; background:radial-gradient(ellipse 70% 50% at 75% 10%, rgba(212,175,55,0.06), transparent 50%), var(--bg); }
+  .ground::before { content:""; position:absolute; inset:0; background-image:linear-gradient(rgba(212,175,55,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,0.02) 1px, transparent 1px); background-size:40px 40px; mask-image:linear-gradient(to bottom, black 15%, transparent 80%); animation:drift 28s linear infinite; }
+  @keyframes drift { to { transform:translateY(40px); } }
+  .layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  .sidebar { background:rgba(18,17,16,0.95); border-right:1px solid var(--border); padding:24px 14px; position:sticky; top:0; height:100vh; }
+  .logo { font-size:13px; font-weight:700; color:var(--gold); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:32px; padding:0 10px; }
+  .nav-section { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin:22px 10px 6px; }
+  .nav-item { display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:8px; color:var(--muted); cursor:pointer; font-size:13.5px; }
+  .nav-item:hover { background:rgba(212,175,55,0.08); color:var(--text); }
+  .nav-item.active { background:rgba(212,175,55,0.12); color:var(--gold); }
+  .main { padding:28px 36px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.3); color:var(--gold); font-size:11px; letter-spacing:0.6px; text-transform:uppercase; padding:4px 10px; border-radius:16px; margin-bottom:10px; }
+  h1 { font-size:32px; font-weight:650; letter-spacing:-0.6px; }
+  h1 .gold { background:linear-gradient(90deg, var(--gold), var(--gold-bright), var(--gold)); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:shimmer 4s linear infinite; }
+  @keyframes shimmer { to { background-position:200% center; } }
+  .sub { color:var(--muted); font-size:14px; margin-top:6px; max-width:540px; line-height:1.45; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:16px 0 22px; }
+  .stat { background:linear-gradient(180deg,#161513,#121110); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .stat .lbl { font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); }
+  .stat .val { font-size:22px; font-weight:650; color:var(--gold); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+  .card { background:linear-gradient(180deg,#151412,#11100e); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; transition:all 0.2s; }
+  .card:hover { border-color:rgba(212,175,55,0.4); transform:translateY(-1px); }
+  .badge { font-size:10px; padding:2px 7px; border-radius:8px; font-weight:500; }
+  .badge.ready { background:rgba(16,185,129,0.15); color:var(--live); }
+  .badge.draft { background:rgba(212,175,55,0.12); color:var(--gold); }
+  .card h3 { font-size:15px; margin:6px 0 4px; }
+  .card p { font-size:12.5px; color:var(--muted); }
+  .btn-gold { background:linear-gradient(180deg,#e8c547,#c9a227); color:#1a1408; border:none; padding:9px 18px; border-radius:20px; font-weight:600; font-size:13px; cursor:pointer; }
+  .btn-gold:hover { filter:brightness(1.08); }
+  .btn-quiet { background:transparent; border:1px solid rgba(212,175,55,0.35); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; cursor:pointer; margin-left:6px; }
+  .section { display:none; }
+  .section.active { display:block; }
+  .tabs { display:flex; gap:4px; margin:14px 0 18px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+  .tab { padding:7px 12px; border-radius:6px; font-size:13px; color:var(--muted); cursor:pointer; }
+  .tab.active { background:rgba(212,175,55,0.12); color:var(--gold); }
+  .form { display:grid; gap:12px; max-width:640px; }
+  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .field input, .field textarea, .field select { width:100%; background:#161513; border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; }
+  .field textarea { min-height:90px; }
+  .module { background:#161513; border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:8px; }
+  .spine { display:flex; gap:8px; margin-bottom:16px; font-size:12px; flex-wrap:wrap; }
+  .spine span { padding:4px 10px; border-radius:12px; background:rgba(255,255,255,0.04); color:var(--muted); }
+  .spine span.done { background:rgba(16,185,129,0.15); color:var(--live); }
+  .spine span.current { background:rgba(212,175,55,0.15); color:var(--gold); }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:100; }
+  .modal.show { display:flex; }
+  .modal-box { background:#161513; border:1px solid var(--border); border-radius:14px; padding:24px; width:520px; max-width:90%; }
+  .modal-box h2 { margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div class="ground"></div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">Adult Studio</div>
+    <div class="nav-section">Studio</div>
+    <div class="nav-item active" onclick="showSection('cast')">◎ Cast</div>
+    <div class="nav-item" onclick="showSection('build')">✎ Build</div>
+    <div class="nav-item" onclick="showSection('studio')">🎥 Studio</div>
+    <div class="nav-item" onclick="showSection('library')">📁 Library</div>
+    <div class="nav-section">More</div>
+    <div class="nav-item" onclick="showSection('courses')">🎓 Courses</div>
+    <div class="nav-item" onclick="showSection('wardrobe')">👗 Wardrobe</div>
+  </aside>
+  <main class="main">
+    <section id="cast" class="section active">
+      <div class="header">
+        <div>
+          <div class="pill">Cast</div>
+          <h1>Character <span class="gold">Roster</span></h1>
+          <p class="sub">Open a character or create new. Interview, Quick Build, or Clone.</p>
+        </div>
+        <div>
+          <button class="btn-gold" onclick="openModal('interview')">Interview</button>
+          <button class="btn-quiet" onclick="openModal('quick')">Quick Build</button>
+          <button class="btn-quiet" onclick="openModal('clone')">Clone</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="lbl">Active</div><div class="val" id="charCount">2</div></div>
+        <div class="stat"><div class="lbl">Ready</div><div class="val">1</div></div>
+        <div class="stat"><div class="lbl">Drafts</div><div class="val">1</div></div>
+      </div>
+      <div class="grid" id="castGrid">
+        <div class="card" onclick="openBuild('Samantha')"><span class="badge ready">READY</span><h3>Samantha</h3><p>Written · 9/9 coverage · Voice locked</p></div>
+        <div class="card" onclick="openBuild('Daddy')"><span class="badge ready">READY</span><h3>Daddy</h3><p>Instructor · 7/9 coverage</p></div>
+      </div>
+    </section>
+
+    <section id="build" class="section">
+      <div class="header">
+        <div><div class="pill">Build</div><h1 id="buildTitle">Samantha</h1><p class="sub">Identity, voice, photos, wardrobe, screen test.</p></div>
+        <button class="btn-quiet" onclick="showSection('cast')">← Cast</button>
+      </div>
+      <div class="spine" id="spine"><span class="done">Identity</span><span class="done">Voice</span><span class="current">Photos</span><span>Wardrobe</span><span>Screen Test</span></div>
+      <div class="tabs">
+        <div class="tab active" onclick="showBuildTab('identity')">Identity</div>
+        <div class="tab" onclick="showBuildTab('voice')">Voice</div>
+        <div class="tab" onclick="showBuildTab('photos')">Photos</div>
+        <div class="tab" onclick="showBuildTab('wardrobe')">Wardrobe</div>
+        <div class="tab" onclick="showBuildTab('screentest')">Screen Test</div>
+      </div>
+      <div id="build-identity" class="form"><div class="field"><label>Identity Lock</label><textarea id="identityLock">Natural skin texture, photoreal, not airbrushed</textarea></div><button class="btn-gold" onclick="alert('Identity locked')">Lock Identity</button></div>
+      <div id="build-voice" class="form" style="display:none"><div class="field"><label>Voice Design Prompt</label><textarea>Warm, breathy, mid-20s female</textarea></div><button class="btn-gold" onclick="alert('Generating auditions…')">Design Voice</button></div>
+      <div id="build-photos" class="form" style="display:none"><p style="color:var(--muted)">Upload master references. Coverage updates as slots fill.</p><button class="btn-gold">Upload Masters</button></div>
+      <div id="build-wardrobe" class="form" style="display:none"><p style="color:var(--muted)">Outfits route to SpicyAPI in adult mode.</p><button class="btn-gold">+ Add Outfit</button></div>
+      <div id="build-screentest" class="form" style="display:none"><p style="color:var(--muted)">Generate angles to verify consistency.</p><button class="btn-gold" onclick="alert('Screen test passed. Studio unlocked.')">Run Screen Test</button></div>
+    </section>
+
+    <section id="studio" class="section">
+      <div class="header"><div><div class="pill">Studio</div><h1>Compose & <span class="gold">Shoot</span></h1><p class="sub">Adult mode routes every clip to the adult pipeline.</p></div></div>
+      <div class="form">
+        <div class="field"><label>Scene Title</label><input placeholder="Luxury bedroom"></div>
+        <div class="field"><label>Script + Action</label><textarea placeholder="She walks toward camera…"></textarea></div>
+        <div class="field"><label>Duration</label><select><option>8s</option><option>12s</option><option>20s</option><option>30s</option></select></div>
+        <div class="field"><label>Action</label><select><option>Walk and talk</option><option>Standing</option><option>Explicit</option></select></div>
+        <button class="btn-gold" onclick="alert('Queued to adult pipeline')">Generate Take</button>
+      </div>
+    </section>
+
+    <section id="library" class="section">
+      <div class="header"><div><div class="pill">Library</div><h1>Productions</h1></div></div>
+      <div class="grid"><div class="card"><h3>Samantha Bedroom</h3><p>12s · Ready</p></div></div>
+    </section>
+
+    <section id="courses" class="section">
+      <div class="header">
+        <div><div class="pill">Courses</div><h1>Course <span class="gold">Builder</span></h1><p class="sub">Upload or import, then describe what to build.</p></div>
+        <div>
+          <button class="btn-gold" onclick="addModule()">+ Module</button>
+          <button class="btn-quiet" onclick="document.getElementById('fileUp').click()">Upload</button>
+          <input type="file" id="fileUp" style="display:none" onchange="handleUpload(this)">
+          <button class="btn-quiet" onclick="importDoc()">Google Doc</button>
+        </div>
+      </div>
+      <div class="form" style="margin-bottom:16px;">
+        <div class="field"><label>Course Title</label><input id="courseTitle" value="Becoming a Bimbo"></div>
+        <div class="field"><label>AI Instructions</label><textarea id="aiInstr" placeholder="6 modules, submissive training style, quizzes after each…"></textarea></div>
+      </div>
+      <div id="modules"><div class="module"><h4>Module 1: Introduction</h4><p style="color:var(--muted);font-size:13px;">Welcome · Daddy video</p></div></div>
+      <button class="btn-gold" style="margin-top:10px" onclick="generateCourse()">Generate Course with AI</button>
+    </section>
+
+    <section id="wardrobe" class="section">
+      <div class="header"><div><div class="pill">Wardrobe</div><h1>Outfits</h1></div><button class="btn-gold">+ Outfit</button></div>
+      <div class="grid"><div class="card"><h3>Black Leather Pants</h3><p>Try-on ready</p></div></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle">New Character</h2>
+    <div class="form" id="modalBody"></div>
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button class="btn-gold" onclick="createFromModal()">Create</button>
+      <button class="btn-quiet" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentModal = '';
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event?.target?.classList?.add('active');
+}
+function openBuild(name) {
+  document.getElementById('buildTitle').textContent = name;
+  showSection('build');
+}
+function showBuildTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('[id^="build-"]').forEach(f => f.style.display = 'none');
+  document.getElementById('build-' + tab).style.display = 'block';
+}
+function openModal(type) {
+  currentModal = type;
+  const titles = { interview: 'Character Interview', quick: 'Quick Build', clone: 'Clone Character' };
+  document.getElementById('modalTitle').textContent = titles[type];
+  let body = '';
+  if (type === 'interview') body = '<p style="color:var(--muted)">43 questions across Physical, Wardrobe, Voice, Environment, Constraints. Answers save as you go.</p>';
+  if (type === 'quick') body = '<div class="field"><label>Describe them</label><textarea placeholder="A few paragraphs…"></textarea></div>';
+  if (type === 'clone') body = '<div class="field"><label>Name</label><input placeholder="Character name"></div><p style="color:var(--muted);font-size:13px;margin-top:8px">Next: upload photos and record voice.</p>';
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+function createFromModal() {
+  const name = currentModal === 'clone' ? (document.querySelector('#modalBody input')?.value || 'New Clone') : 'New Character';
+  const grid = document.getElementById('castGrid');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<span class="badge draft">NEW</span><h3>${name}</h3><p>Just created</p>`;
+  card.onclick = () => openBuild(name);
+  grid.prepend(card);
+  document.getElementById('charCount').textContent = grid.children.length;
+  closeModal();
+  alert(name + ' created. Open on Cast to continue.');
+}
+function addModule() {
+  const n = document.querySelectorAll('.module').length + 1;
+  const d = document.createElement('div');
+  d.className = 'module';
+  d.innerHTML = `<h4>Module ${n}: New</h4><p style="color:var(--muted);font-size:13px;">Ready for script</p>`;
+  document.getElementById('modules').appendChild(d);
+}
+function handleUpload(input) {
+  if (!input.files?.[0]) return;
+  const f = input.files[0];
+  addModule();
+  document.querySelector('#modules .module:last-child h4').textContent = 'Module: ' + f.name;
+  input.value = '';
+}
+function importDoc() {
+  const url = prompt('Google Doc URL:');
+  if (url) { addModule(); alert('Doc imported.'); }
+}
+function generateCourse() {
+  const title = document.getElementById('courseTitle').value;
+  const instr = document.getElementById('aiInstr').value || 'Standard';
+  alert(`Generating "${title}"\nInstructions applied.`);
+}
+</script>
+</body>
+</html>
