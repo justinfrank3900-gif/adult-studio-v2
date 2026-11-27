@@ -7,6 +7,7 @@
 import { supa, DEALER_ID } from './supabase';
 import { cleanBlocks, type Block } from './blocks';
 import { token } from './data';
+import { DEMO, demoCourses, demoLessons, demoModules } from './demo';
 
 export class Refused extends Error {}
 function hopeless(what: string, message: string): never {
@@ -41,6 +42,7 @@ export type Lesson = {
 };
 
 export async function loadCourses(): Promise<Course[]> {
+  if (DEMO) return demoCourses as Course[];
   const { data, error } = await supa()
     .from('adult_courses')
     .select('id,title,description,status,cover_url,created_at')
@@ -51,6 +53,16 @@ export async function loadCourses(): Promise<Course[]> {
 }
 
 export async function loadCourse(courseId: string): Promise<{ modules: Module[]; lessons: Lesson[] }> {
+  if (DEMO) {
+    const modules = demoModules.filter((m) => m.course_id === courseId) as Module[];
+    const ids = new Set(modules.map((m) => m.id));
+    return {
+      modules,
+      lessons: (demoLessons as unknown as Lesson[])
+        .filter((l) => ids.has(l.module_id))
+        .map((l) => ({ ...l, blocks: cleanBlocks(l.blocks) })),
+    };
+  }
   const { data: modules, error: mErr } = await supa()
     .from('adult_modules')
     .select('id,course_id,title,summary,sort_order')

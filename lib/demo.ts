@@ -58,3 +58,39 @@ export const demoTakes = [
   { id: 't1', production_id: 'p1', order_index: 1, layer: 'scene', script_line: null, prompt_id: 's1', status: 'frame', video_url: null, image_url: pic('tk1'), error: null, identity_id: 'd1', outfit_id: 'o1', direction_note: 'she turns from the window and walks towards the camera', opens_on_frame_url: pic('sam1'), ends_on_frame_url: pic('tk1') },
   { id: 't2', production_id: 'p1', order_index: 2, layer: 'scene', script_line: null, prompt_id: 's1', status: 'draft', video_url: null, image_url: null, error: null, identity_id: 'd1', outfit_id: 'o1', direction_note: '', opens_on_frame_url: null, ends_on_frame_url: null },
 ];
+
+/* A course with one lesson actually written, so the laid-out page can be
+ * looked at on a laptop. Same reasoning as the rest of this file. */
+export const demoCourses = [
+  { id: 'c1', title: 'How to train a submissive', description: 'For couples who have agreed on the dynamic and want to do it properly: consent, protocol, correction, aftercare, and what to do when it stops working.', status: 'draft', cover_url: null, created_at: '2026-11-25T10:00:00Z' },
+];
+
+export const demoModules = [
+  { id: 'm1', course_id: 'c1', title: 'Ground rules', summary: 'By the end of this you can write a set of limits both of you have actually agreed to.', sort_order: 1 },
+  { id: 'm2', course_id: 'c1', title: 'Protocol', summary: 'The small daily things that hold the dynamic up when nothing is happening.', sort_order: 2 },
+];
+
+export const demoLessons = [
+  {
+    id: 'l1', module_id: 'm1', title: 'Consent is a conversation, not a form', sort_order: 1,
+    summary: 'Why a signed list of limits goes stale, and what to do instead.',
+    source_name: null,
+    blocks: [
+      { type: 'text', text: 'Most people treat consent as a thing they did once, at the start, in a long conversation neither of them quite remembers. It is written down, agreed to, and then never looked at again - and six months later the agreement describes two people who no longer exist.' },
+      { type: 'pull', text: 'A limit you agreed to a year ago is a record of what you wanted a year ago.' },
+      { type: 'heading', text: 'What changes', level: 2 },
+      { type: 'text', text: 'Limits move in both directions, and they move for reasons that have nothing to do with the dynamic: a bad month at work, an injury, a death in the family. None of that gets written into the original list because none of it had happened yet.' },
+      { type: 'note', text: 'If one of you is finding out about a change during a scene, the conversation happened too late. That is the thing this lesson exists to stop.', tone: 'warn' },
+      { type: 'heading', text: 'The check in', level: 2 },
+      { type: 'steps', items: [
+        'Pick a time that is nowhere near a scene. Sunday morning, not Saturday night.',
+        'Each of you says one thing you want more of. Not a negotiation yet - just the sentence.',
+        'Each of you says one thing that has gone quiet. The hardest part, and the whole point.',
+        'Write the two lists down. Date them. The date is what makes the next one possible.',
+      ] },
+      { type: 'text', text: 'Twenty minutes, once a month. It is less romantic than the version in your head and it is the single thing that separates a dynamic that lasts from one that ends badly.' },
+    ],
+  },
+  { id: 'l2', module_id: 'm1', title: 'Writing limits that mean something', sort_order: 2, summary: 'Specific beats comprehensive.', source_name: null, blocks: [] },
+  { id: 'l3', module_id: 'm2', title: 'The morning protocol', sort_order: 1, summary: 'What the first ten minutes of the day do for the other twenty-three hours.', source_name: null, blocks: [] },
+];
