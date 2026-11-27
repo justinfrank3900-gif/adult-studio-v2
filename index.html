@@ -3,350 +3,385 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Avatar Studio — TYME</title>
+<title>Adult Studio — TYME</title>
 <style>
 :root {
-  --bg: #0a0a0c;
-  --bg-card: #12121a;
-  --bg-card-hover: #1a1a24;
-  --gold: #d4af37;
-  --gold-dim: #a8842a;
-  --gold-glow: rgba(212,175,55,0.15);
-  --text: #f0f0f5;
-  --text-dim: #8888a0;
-  --border: #2a2a3a;
-  --border-gold: rgba(212,175,55,0.4);
-  --sidebar: #0d0d12;
-  --success: #4ade80;
+  --bg: #07070a;
+  --bg-elevated: #0e0e14;
+  --bg-card: #12121c;
+  --bg-card-hover: #181824;
+  --gold: #e8c547;
+  --gold-deep: #c9a227;
+  --gold-glow: rgba(232,197,71,0.18);
+  --text: #f5f3f0;
+  --text-dim: #8a8694;
+  --border: #252530;
+  --border-gold: rgba(232,197,71,0.35);
+  --sidebar: #0a0a0e;
+  --success: #3ecf8e;
+  --live: #10b981;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; display:flex; }
-.sidebar { width:220px; background:var(--sidebar); border-right:1px solid var(--border); padding:16px 0; flex-shrink:0; display:flex; flex-direction:column; }
-.logo { padding:0 16px 20px; display:flex; align-items:center; gap:10px; }
-.logo-icon { width:40px; height:40px; background:linear-gradient(135deg,#d4af37,#8b6914); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#000; }
-.logo-text { font-size:13px; font-weight:700; letter-spacing:0.5px; }
-.logo-sub { font-size:9px; color:var(--text-dim); }
-.portal-btn { margin:0 12px 16px; padding:8px 12px; background:#1a1a28; border:1px solid var(--border); border-radius:6px; font-size:12px; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:6px; }
-.nav-item { padding:10px 16px; font-size:13px; color:var(--text-dim); cursor:pointer; display:flex; align-items:center; gap:10px; transition:all .15s; }
-.nav-item:hover { background:#15151f; color:var(--text); }
-.nav-item.active { background:#1a1a28; color:var(--gold); border-left:3px solid var(--gold); }
-.nav-item svg { width:16px; height:16px; opacity:0.7; }
-.nav-section { margin-top:auto; padding:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-dim); }
-.main { flex:1; padding:20px 28px; overflow-y:auto; max-height:100vh; }
-.top-bar { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
-.open-now { background:#1a1a28; border:1px solid var(--border-gold); border-radius:8px; padding:12px 16px; font-size:12px; }
-.open-now strong { color:var(--gold); }
-.stats-bar { display:flex; gap:24px; background:#12121a; border:1px solid var(--border); border-radius:10px; padding:16px 24px; margin:16px 0; }
-.stat { text-align:center; }
-.stat-num { font-size:22px; font-weight:700; color:var(--gold); }
-.stat-label { font-size:10px; color:var(--text-dim); letter-spacing:0.5px; }
-.section-label { font-size:11px; color:var(--gold); letter-spacing:1px; margin:20px 0 8px; font-weight:600; }
-h1 { font-size:28px; font-weight:700; margin-bottom:8px; }
-.sub { color:var(--text-dim); font-size:14px; margin-bottom:20px; }
-.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
-.card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:all .2s; }
-.card:hover { border-color:var(--border-gold); transform:translateY(-2px); }
-.card-img { height:180px; background:#1a1a24; display:flex; align-items:center; justify-content:center; position:relative; }
-.card-img img { width:100%; height:100%; object-fit:cover; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; min-height:100vh; display:flex; }
+body::before { content:""; position:fixed; inset:0; background:radial-gradient(ellipse 80% 50% at 70% 0%, rgba(232,197,71,0.04), transparent 50%); pointer-events:none; z-index:0; }
+.sidebar { width:210px; background:var(--sidebar); border-right:1px solid var(--border); padding:20px 0; flex-shrink:0; display:flex; flex-direction:column; position:relative; z-index:1; }
+.logo { padding:0 16px 24px; display:flex; align-items:center; gap:10px; }
+.logo-icon { width:36px; height:36px; background:linear-gradient(135deg,var(--gold),var(--gold-deep)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#1a1408; }
+.logo-text { font-size:12px; font-weight:700; letter-spacing:1px; color:var(--gold); }
+.logo-sub { font-size:9px; color:var(--text-dim); letter-spacing:0.5px; }
+.nav-section { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-dim); padding:16px 16px 6px; }
+.nav-item { padding:10px 16px; font-size:13px; color:var(--text-dim); cursor:pointer; display:flex; align-items:center; gap:10px; transition:all .15s; border-left:3px solid transparent; }
+.nav-item:hover { background:rgba(232,197,71,0.06); color:var(--text); }
+.nav-item.active { background:rgba(232,197,71,0.1); color:var(--gold); border-left-color:var(--gold); }
+.main { flex:1; padding:24px 32px; overflow-y:auto; max-height:100vh; position:relative; z-index:1; }
+.header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+.pill { display:inline-flex; align-items:center; gap:6px; background:rgba(232,197,71,0.08); border:1px solid var(--border-gold); color:var(--gold); font-size:10px; letter-spacing:0.8px; text-transform:uppercase; padding:4px 10px; border-radius:16px; margin-bottom:10px; }
+.pill::before { content:""; width:5px; height:5px; background:var(--gold); border-radius:50%; }
+h1 { font-size:32px; font-weight:650; letter-spacing:-0.5px; }
+h1 span { background:linear-gradient(90deg,var(--gold),#f5e08a,var(--gold)); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:var(--text-dim); font-size:14px; margin-top:6px; max-width:520px; line-height:1.5; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin:20px 0; }
+.stat { background:linear-gradient(180deg,#14141c,#0e0e14); border:1px solid var(--border); border-radius:12px; padding:14px 16px; transition:all .2s; }
+.stat:hover { border-color:var(--border-gold); }
+.stat .lbl { font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--text-dim); }
+.stat .val { font-size:24px; font-weight:650; color:var(--gold); margin-top:2px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+.card { background:linear-gradient(180deg,#14141c,#0e0e14); border:1px solid var(--border); border-radius:14px; overflow:hidden; transition:all .2s; cursor:pointer; }
+.card:hover { border-color:var(--border-gold); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.4), 0 0 20px var(--gold-glow); }
+.card-img { height:160px; background:linear-gradient(180deg,#1a1520,#0e0e14); display:flex; align-items:center; justify-content:center; font-size:40px; position:relative; }
 .card-body { padding:14px; }
-.card-title { font-weight:600; margin-bottom:4px; }
-.card-meta { font-size:12px; color:var(--text-dim); }
-.btn { background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:13px; transition:all .15s; }
-.btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
-.btn-outline { background:transparent; border:1px solid var(--border-gold); color:var(--gold); }
-.btn-sm { padding:6px 14px; font-size:12px; }
-.tabs { display:flex; gap:8px; margin:16px 0; flex-wrap:wrap; }
-.tab { padding:8px 16px; background:#1a1a28; border:1px solid var(--border); border-radius:20px; font-size:12px; cursor:pointer; }
-.tab.active { background:var(--gold); color:#000; border-color:var(--gold); }
+.card-title { font-weight:600; font-size:15px; margin-bottom:4px; }
+.card-meta { font-size:12px; color:var(--text-dim); line-height:1.5; }
+.badge { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:500; display:inline-block; }
+.badge.ready { background:rgba(16,185,129,0.15); color:var(--live); }
+.badge.draft { background:rgba(232,197,71,0.12); color:var(--gold); }
+.btn { background:linear-gradient(180deg,var(--gold),var(--gold-deep)); color:#1a1408; border:none; padding:10px 20px; border-radius:22px; font-weight:600; cursor:pointer; font-size:13px; transition:all .15s; box-shadow:0 4px 14px rgba(232,197,71,0.25); }
+.btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+.btn-outline { background:transparent; border:1px solid var(--border-gold); color:var(--text); box-shadow:none; }
+.btn-sm { padding:7px 14px; font-size:12px; }
+.tabs { display:flex; gap:6px; margin:16px 0; flex-wrap:wrap; }
+.tab { padding:8px 14px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:20px; font-size:12px; cursor:pointer; color:var(--text-dim); transition:all .15s; }
+.tab:hover { border-color:var(--border-gold); color:var(--text); }
+.tab.active { background:var(--gold); color:#1a1408; border-color:var(--gold); }
 .panel { display:none; }
 .panel.active { display:block; }
-.take-card { background:#12121a; border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0; }
-.take-num { font-size:12px; color:var(--gold); margin-bottom:8px; }
-.textarea { width:100%; background:#0a0a0c; border:1px solid var(--border); border-radius:8px; padding:12px; color:var(--text); font-size:14px; min-height:80px; resize:vertical; }
-.form-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:12px 0; }
-select, input[type="text"] { background:#0a0a0c; border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:13px; width:100%; }
-.shape-card { background:#12121a; border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; }
-.shape-card:hover, .shape-card.selected { border-color:var(--gold); }
+.subpanel { display:none; }
+.subpanel.active { display:block; }
+.take-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0; }
+.take-num { font-size:11px; color:var(--gold); margin-bottom:8px; letter-spacing:0.5px; }
+.textarea, input[type="text"], select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; color:var(--text); font-size:14px; }
+.textarea { min-height:90px; resize:vertical; }
+.textarea:focus, input:focus, select:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(232,197,71,0.12); }
+.form-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:14px 0; }
+.shape-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; transition:all .15s; }
+.shape-card:hover, .shape-card.selected { border-color:var(--gold); background:rgba(232,197,71,0.04); }
 .shape-card h4 { font-size:14px; margin-bottom:4px; }
 .shape-card p { font-size:12px; color:var(--text-dim); }
-.outfit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
-.outfit-card { background:#12121a; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.outfit-card img { width:100%; height:220px; object-fit:cover; }
-.outfit-info { padding:10px; font-size:12px; }
-.location-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
-.location-card { background:#12121a; border:1px solid var(--border); border-radius:10px; padding:14px; }
-.progress-bar { height:6px; background:#2a2a3a; border-radius:3px; margin:8px 0; }
-.progress-fill { height:100%; background:var(--gold); border-radius:3px; }
-.char-row { display:flex; gap:16px; overflow-x:auto; padding:10px 0; }
-.char-thumb { width:100px; height:140px; border-radius:8px; overflow:hidden; flex-shrink:0; border:2px solid transparent; }
-.char-thumb img { width:100%; height:100%; object-fit:cover; }
-.char-thumb.active { border-color:var(--gold); }
+.outfit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; }
+.outfit-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:all .15s; }
+.outfit-card:hover { border-color:var(--border-gold); }
+.outfit-thumb { height:200px; background:linear-gradient(180deg,#1a1520,#0e0e14); display:flex; align-items:center; justify-content:center; font-size:36px; }
+.outfit-info { padding:12px; font-size:12px; }
+.location-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+.location-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.progress-bar { height:5px; background:#252530; border-radius:3px; margin:8px 0; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--gold-deep),var(--gold)); border-radius:3px; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal.show { display:flex; }
+.modal-box { background:var(--bg-card); border:1px solid var(--border-gold); border-radius:16px; padding:24px; width:540px; max-width:92%; max-height:85vh; overflow-y:auto; }
+.modal-box h2 { margin-bottom:16px; font-size:20px; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+.spine { display:flex; gap:8px; margin:14px 0; flex-wrap:wrap; }
+.spine span { padding:5px 12px; border-radius:14px; background:rgba(255,255,255,0.04); color:var(--text-dim); font-size:12px; }
+.spine span.done { background:rgba(16,185,129,0.15); color:var(--live); }
+.spine span.current { background:rgba(232,197,71,0.15); color:var(--gold); }
 </style>
 </head>
 <body>
 <aside class="sidebar">
   <div class="logo">
-    <div class="logo-icon">TY</div>
+    <div class="logo-icon">AS</div>
     <div>
-      <div class="logo-text">TYME</div>
-      <div class="logo-sub">DEALER SOLUTIONS</div>
+      <div class="logo-text">ADULT STUDIO</div>
+      <div class="logo-sub">TYME</div>
     </div>
   </div>
-  <div class="portal-btn">● Internal Portal</div>
-  <div class="nav-item">Workflows</div>
-  <div class="nav-item">Onboarding</div>
-  <div class="nav-item">Demo leads</div>
-  <div class="nav-item">GHL pull</div>
-  <div class="nav-item">Reporting</div>
-  <div class="nav-item">Meta Ad Manager</div>
-  <div class="nav-item active" onclick="showPanel('floor')">Avatar Studio</div>
-  <div class="nav-item" onclick="showPanel('adult')">Adult Studio</div>
-  <div class="nav-item">Content Library</div>
-  <div class="nav-item">Video Editor</div>
-  <div class="nav-item">Social Command Center</div>
-  <div class="nav-item">Justin AI</div>
-  <div class="nav-item">Brands</div>
-  <div class="nav-item">AI Playground</div>
-  <div class="nav-item">TYME Sales Academy Editor</div>
-  <div class="nav-item">Settings</div>
-  <div class="nav-section">
-    <div>justin@tymsales.com</div>
-    <div style="margin-top:8px;cursor:pointer">Sign Out</div>
-  </div>
+  <div class="nav-section">Create</div>
+  <div class="nav-item active" onclick="showPanel('cast')">◎ Cast</div>
+  <div class="nav-item" onclick="showPanel('build')">✎ Build</div>
+  <div class="nav-item" onclick="showPanel('wardrobe')">👗 Wardrobe</div>
+  <div class="nav-section">Produce</div>
+  <div class="nav-item" onclick="showPanel('floor')">🎥 Shoots</div>
+  <div class="nav-item" onclick="showPanel('sets')">🎬 Sets</div>
+  <div class="nav-section">More</div>
+  <div class="nav-item" onclick="showPanel('courses')">🎓 Courses</div>
+  <div class="nav-item" onclick="showPanel('library')">📁 Library</div>
 </aside>
-<main class="main" id="main">
-  <!-- FLOOR PANEL -->
-  <div id="floor" class="panel active">
-    <div class="top-bar">
-      <div class="open-now">
-        <strong>OPEN NOW</strong><br>
-        Look close, TYME Portal - the reshoot<br>
-        <span style="color:var(--text-dim)">1 of 3 shot</span>
+<main class="main">
+  <!-- CAST -->
+  <div id="cast" class="panel active">
+    <div class="header">
+      <div>
+        <div class="pill">Cast</div>
+        <h1>Who is on <span>camera</span></h1>
+        <p class="sub">Build a pornstar. Lock the face, voice, and outfits. Ready when coverage is complete.</p>
       </div>
-      <button class="btn btn-outline btn-sm">Switch shoot</button>
-    </div>
-    <div class="stats-bar">
-      <div class="stat"><div class="stat-num">1/3</div><div class="stat-label">SHOT</div></div>
-      <div class="stat"><div class="stat-num">—</div><div class="stat-label">ROLLING</div></div>
-      <div class="stat"><div class="stat-num">—</div><div class="stat-label">NEED ANOTHER GO</div></div>
-      <div class="stat"><div class="stat-num">$9.04</div><div class="stat-label">TO FINISH THIS REEL</div></div>
-      <div class="stat"><div class="stat-num">$248.05</div><div class="stat-label">LEFT THIS MONTH</div></div>
-    </div>
-    <p style="font-size:12px;color:var(--text-dim);margin-bottom:20px">$1.95 of $250.00 spent this month. Enough left for 96 more takes.</p>
-    <div class="section-label">THE COMPANY</div>
-    <div class="tabs">
-      <div class="tab active" onclick="showSub('floor-main')">The floor</div>
-      <div class="tab" onclick="showSub('cast')">Cast</div>
-      <div class="tab" onclick="showSub('wardrobe')">Wardrobe</div>
-      <div class="tab" onclick="showSub('sets')">Sets</div>
-      <div class="tab" onclick="showSub('onboarding')">Onboarding intros</div>
-    </div>
-    <div id="floor-main" class="subpanel">
-      <h1>Every shoot the company has.</h1>
-      <p class="sub">A shoot has a name, somebody in it, a place and a shape. Pick the shape and the takes arrive framed and blocked with their lines empty, because the words are yours.</p>
-      <button class="btn" onclick="showSub('newshoot')">Start a new shoot</button>
-      <div class="cards" style="margin-top:20px">
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">Look close, TYME Portal - the reshoot</div>
-            <div class="card-meta">Justin AI · Showroom floor · 1 of 3 shot</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
-            <div style="margin-top:10px"><button class="btn btn-sm">Carry on</button> <button class="btn btn-outline btn-sm">Put away</button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">Look close - TYME Portal</div>
-            <div class="card-meta">Justin AI · Showroom floor · 10/20/2026</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
-            <div style="margin-top:10px"><button class="btn btn-sm">Carry on</button> <button class="btn btn-outline btn-sm">Put away</button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">Howdy folks - the one that worked</div>
-            <div class="card-meta">Justin AI · The lot, mid morning · Finished</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
-            <div style="margin-top:10px"><button class="btn btn-outline btn-sm">Open</button> <button class="btn btn-outline btn-sm">Put away</button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">AVS5 VALIDATION COPY</div>
-            <div class="card-meta">Samantha · Finished</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
-            <div style="margin-top:10px"><button class="btn btn-outline btn-sm">Open</button> <button class="btn btn-outline btn-sm">Put away</button></div>
-          </div>
-        </div>
+      <div>
+        <button class="btn" onclick="openModal('newchar')">+ New Character</button>
       </div>
     </div>
-    <div id="cast" class="subpanel" style="display:none">
-      <h1>Who is on camera.</h1>
-      <p class="sub">Everyone here is TYME property, built for a client and never handed over. A character is ready to film when it has a locked face, a voice and at least one outfit.</p>
-      <button class="btn" style="margin-bottom:16px">Add a character</button>
-      <div class="cards">
-        <div class="card">
-          <div class="card-img" style="background:linear-gradient(180deg,#2a1a0a,#0a0a0c)"><span style="font-size:48px">👨</span></div>
-          <div class="card-body">
-            <div style="background:var(--gold);color:#000;font-size:10px;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:8px">DEFAULT</div>
-            <div class="card-title">Justin AI</div>
-            <div class="card-meta">✓ 19 reference stills holding the face<br>✓ Justin AI (bootcamp), written<br>✓ 10 outfits shot on them<br>✓ Passed a screen test</div>
-            <div style="margin-top:10px"><button class="btn btn-sm">Open</button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-img"><span style="font-size:48px">👩</span></div>
-          <div class="card-body">
-            <div class="card-title">Samantha</div>
-            <div class="card-meta">✓ 22 reference stills holding the face<br>✓ Samantha (designed), written<br>✓ 6 outfits shot on them<br>✓ Passed a screen test</div>
-            <div style="margin-top:10px"><button class="btn btn-sm">Open</button> <button class="btn btn-outline btn-sm">Make default</button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-img"><span style="font-size:48px">👩</span></div>
-          <div class="card-body">
-            <div class="card-title">Vicky</div>
-            <div class="card-meta">✓ 8 reference stills holding the face<br>✓ Samantha (designed), written<br>✓ 3 outfits shot on them</div>
-            <div style="margin-top:10px"><button class="btn btn-sm">Open</button></div>
-          </div>
-        </div>
-      </div>
+    <div class="stats">
+      <div class="stat"><div class="lbl">Active</div><div class="val" id="charCount">3</div></div>
+      <div class="stat"><div class="lbl">Ready</div><div class="val">2</div></div>
+      <div class="stat"><div class="lbl">Drafts</div><div class="val">1</div></div>
     </div>
-    <div id="wardrobe" class="subpanel" style="display:none">
-      <h1>What they wear.</h1>
-      <p class="sub">An outfit is written once and belongs to the company, but it is only real once it has been shot on a particular person.</p>
-      <div style="margin:12px 0">
-        <span style="font-size:12px;color:var(--text-dim)">DRESSING</span>
-        <div class="tabs">
-          <div class="tab">Justin</div>
-          <div class="tab">Samantha</div>
-          <div class="tab active">Justin AI</div>
-          <div class="tab">Vicky</div>
+    <div class="cards" id="castGrid">
+      <div class="card" onclick="openBuild('Samantha')">
+        <div class="card-img">👩</div>
+        <div class="card-body">
+          <span class="badge ready">READY</span>
+          <div class="card-title">Samantha</div>
+          <div class="card-meta">✓ 22 reference stills<br>✓ Voice locked<br>✓ 6 outfits<br>✓ Screen test passed</div>
         </div>
       </div>
-      <div class="outfit-grid">
-        <div class="outfit-card">
-          <div style="height:200px;background:#1a1a24;display:flex;align-items:center;justify-content:center">👔</div>
-          <div class="outfit-info">
-            <strong>Justin AI - Leather suit and gold tie (hero)</strong><br>
-            <span style="color:var(--text-dim)">A glossy black leather three piece suit with bright gold trim</span><br>
-            <button class="btn btn-sm" style="margin-top:8px">Shoot again</button>
-          </div>
-        </div>
-        <div class="outfit-card">
-          <div style="height:200px;background:#1a1a24;display:flex;align-items:center;justify-content:center">🤵</div>
-          <div class="outfit-info">
-            <strong>Justin AI - Gold tie three piece</strong><br>
-            <button class="btn btn-sm" style="margin-top:8px">Shoot again</button>
-          </div>
-        </div>
-        <div class="outfit-card">
-          <div style="height:200px;background:#1a1a24;display:flex;align-items:center;justify-content:center">🧥</div>
-          <div class="outfit-info">
-            <strong>Justin AI - Black tuxedo</strong><br>
-            <button class="btn btn-sm" style="margin-top:8px">Shoot again</button>
-          </div>
-        </div>
-        <div class="outfit-card">
-          <div style="height:200px;background:#1a1a24;display:flex;align-items:center;justify-content:center">🧥</div>
-          <div class="outfit-info">
-            <strong>Justin AI - Overcoat and gold scarf</strong><br>
-            <button class="btn btn-sm" style="margin-top:8px">Shoot again</button>
-          </div>
+      <div class="card" onclick="openBuild('Vicky')">
+        <div class="card-img">👩</div>
+        <div class="card-body">
+          <span class="badge ready">READY</span>
+          <div class="card-title">Vicky</div>
+          <div class="card-meta">✓ 8 reference stills<br>✓ 3 outfits</div>
         </div>
       </div>
-      <button class="btn" style="margin-top:16px">+ Add an outfit</button>
-    </div>
-    <div id="sets" class="subpanel" style="display:none">
-      <h1>Where you shoot.</h1>
-      <div class="location-grid">
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>Showroom walk</strong>
-          <p style="font-size:12px;color:var(--text-dim);margin:6px 0">Walking through a modern car dealership showroom</p>
-          <button class="btn btn-sm">Shoot a test frame</button>
+      <div class="card" onclick="openBuild('New Draft')">
+        <div class="card-img">✨</div>
+        <div class="card-body">
+          <span class="badge draft">DRAFT</span>
+          <div class="card-title">Interview in progress</div>
+          <div class="card-meta">18/43 questions</div>
         </div>
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>Sales desk - showing paperwork</strong>
-          <button class="btn btn-sm">Shoot a test frame</button>
-        </div>
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>Office - printer task</strong>
-          <button class="btn btn-sm">Shoot a test frame</button>
-        </div>
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>Running Across Dealership Car Lot</strong>
-          <button class="btn btn-sm">Shoot a test frame</button>
-        </div>
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>In Bed Working From Home</strong>
-          <button class="btn btn-sm">Shoot a test frame</button>
-        </div>
-        <div class="location-card">
-          <div style="height:100px;background:#1a1a24;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim)">not shot</div>
-          <strong>Bathroom / getting ready</strong>
-          <button class="btn btn-sm">Shoot a test frame</button>
-        </div>
-      </div>
-    </div>
-    <div id="newshoot" class="subpanel" style="display:none">
-      <h1>A new shoot</h1>
-      <div class="section-label">WHAT IS IT CALLED</div>
-      <input type="text" placeholder="Look close, TYME Portal" style="margin-bottom:16px">
-      <div class="form-row">
-        <div>
-          <div class="section-label">WHO IS IN IT</div>
-          <select><option>Justin AI</option><option>Samantha</option><option>Vicky</option></select>
-        </div>
-        <div>
-          <div class="section-label">WHERE IT HAPPENS</div>
-          <select><option>Showroom walk</option><option>Sales desk</option><option>Office</option></select>
-        </div>
-        <div>
-          <div class="section-label">OPENS SOMEWHERE ELSE</div>
-          <select><option>Straight into the set</option></select>
-        </div>
-        <div>
-          <div class="section-label">WHAT HE WEARS</div>
-          <select><option>Whatever the reference shows</option></select>
-        </div>
-      </div>
-      <div class="section-label">THE SHAPE OF IT</div>
-      <div class="cards">
-        <div class="shape-card selected">
-          <h4>Open on his eye and pull back</h4>
-          <p>Starts inside his eye and opens out for the whole reel until he is one man in a room. The reveal is the argument.</p>
-        </div>
-        <div class="shape-card">
-          <h4>Start wide and close in on him</h4>
-          <p>Opens on the whole room and tightens all the way to his face.</p>
-        </div>
-        <div class="shape-card">
-          <h4>Walk and talk</h4>
-          <p>He covers ground while he speaks and the camera moves with him.</p>
-        </div>
-        <div class="shape-card">
-          <h4>Straight to camera</h4>
-          <p>Held on him, barely moving, the words carrying it.</p>
-        </div>
-      </div>
-      <div style="margin-top:20px">
-        <button class="btn">Put it on the floor</button>
-        <button class="btn btn-outline" style="margin-left:10px">Cancel</button>
       </div>
     </div>
   </div>
-  <!-- ADULT STUDIO -->
-  <div id="adult" class="panel">
-    <h1>Adult Studio</h1>
-    <p class="sub">Private avatar builder for adult content. Same engine, separate space.</p>
-    <button class="btn">+ New Character</button>
+
+  <!-- BUILD -->
+  <div id="build" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Build</div>
+        <h1 id="buildTitle">Samantha</h1>
+        <p class="sub">Identity lock, voice, photos, wardrobe, screen test.</p>
+      </div>
+      <button class="btn btn-outline" onclick="showPanel('cast')">← Cast</button>
+    </div>
+    <div class="spine">
+      <span class="done">Identity</span>
+      <span class="done">Voice</span>
+      <span class="current">Photos</span>
+      <span>Wardrobe</span>
+      <span>Screen Test</span>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="showBuildTab('identity')">Identity</div>
+      <div class="tab" onclick="showBuildTab('voice')">Voice</div>
+      <div class="tab" onclick="showBuildTab('photos')">Photos</div>
+      <div class="tab" onclick="showBuildTab('wardrobe-tab')">Wardrobe</div>
+      <div class="tab" onclick="showBuildTab('screentest')">Screen Test</div>
+    </div>
+    <div id="build-identity" class="build-panel">
+      <div class="field"><label>Identity Lock (sent with every generation)</label><textarea class="textarea" id="identityLock">24 year old blonde, athletic build, natural skin texture with visible pores, photoreal, not airbrushed, consistent face</textarea></div>
+      <button class="btn" onclick="alert('Identity locked')">Lock Identity</button>
+    </div>
+    <div id="build-voice" class="build-panel" style="display:none">
+      <div class="field"><label>Voice Design Prompt</label><textarea class="textarea">Warm, slightly breathy, mid-20s female, confident but soft, intimate</textarea></div>
+      <button class="btn" onclick="alert('Generating voice auditions...')">Design Voice</button>
+    </div>
+    <div id="build-photos" class="build-panel" style="display:none">
+      <p style="color:var(--text-dim);margin-bottom:12px">Master reference photos. Coverage ring updates as slots fill.</p>
+      <button class="btn">Upload Masters</button>
+    </div>
+    <div id="build-wardrobe-tab" class="build-panel" style="display:none">
+      <p style="color:var(--text-dim);margin-bottom:12px">Outfits with try-on previews.</p>
+      <button class="btn" onclick="showPanel('wardrobe')">Manage Wardrobe</button>
+    </div>
+    <div id="build-screentest" class="build-panel" style="display:none">
+      <p style="color:var(--text-dim);margin-bottom:12px">Generate angles and expressions to verify consistency.</p>
+      <button class="btn" onclick="alert('Screen test passed. Ready for shoots.')">Run Screen Test</button>
+    </div>
+  </div>
+
+  <!-- WARDROBE -->
+  <div id="wardrobe" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Wardrobe</div>
+        <h1>What they <span>wear</span></h1>
+        <p class="sub">An outfit is written once. It becomes real when shot on a character.</p>
+      </div>
+      <button class="btn" onclick="openModal('outfit')">+ Add Outfit</button>
+    </div>
+    <div class="tabs" id="wardrobeTabs">
+      <div class="tab active">Samantha</div>
+      <div class="tab">Vicky</div>
+    </div>
+    <div class="outfit-grid">
+      <div class="outfit-card">
+        <div class="outfit-thumb">👗</div>
+        <div class="outfit-info">
+          <strong>Black Leather Pants</strong><br>
+          <span style="color:var(--text-dim)">Hero look</span><br>
+          <button class="btn btn-sm" style="margin-top:8px">Shoot on Samantha</button>
+        </div>
+      </div>
+      <div class="outfit-card">
+        <div class="outfit-thumb">👙</div>
+        <div class="outfit-info">
+          <strong>Red Lace Set</strong><br>
+          <span style="color:var(--text-dim)">Shared</span><br>
+          <button class="btn btn-sm" style="margin-top:8px">Shoot on Samantha</button>
+        </div>
+      </div>
+      <div class="outfit-card">
+        <div class="outfit-thumb">🩱</div>
+        <div class="outfit-info">
+          <strong>Nude Base</strong><br>
+          <span style="color:var(--text-dim)">Reference</span><br>
+          <button class="btn btn-sm" style="margin-top:8px">Shoot on Samantha</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOOTS / FLOOR -->
+  <div id="floor" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Shoots</div>
+        <h1>Every shoot on the <span>floor</span></h1>
+        <p class="sub">A shoot has a name, a character, a place, and a shape. Takes arrive framed. Words are yours.</p>
+      </div>
+      <button class="btn" onclick="showNewShoot()">Start a new shoot</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="lbl">Shot</div><div class="val">1/3</div></div>
+      <div class="stat"><div class="lbl">To Finish</div><div class="val">$9.04</div></div>
+      <div class="stat"><div class="lbl">Left This Month</div><div class="val">$248</div></div>
+    </div>
+    <div class="cards" id="shootsGrid">
+      <div class="card">
+        <div class="card-body">
+          <div class="card-title">Luxury Bedroom Walk</div>
+          <div class="card-meta">Samantha · Bedroom · 1 of 3 takes</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+          <div style="margin-top:10px"><button class="btn btn-sm">Carry on</button> <button class="btn btn-outline btn-sm">Put away</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="card-title">Penthouse Night</div>
+          <div class="card-meta">Vicky · Pool · Finished</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
+          <div style="margin-top:10px"><button class="btn btn-outline btn-sm">Open</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="newShootForm" style="display:none;margin-top:24px">
+      <h2 style="margin-bottom:14px">A new shoot</h2>
+      <div class="field"><label>What is it called</label><input type="text" id="shootName" placeholder="Luxury bedroom walk-and-talk"></div>
+      <div class="form-row">
+        <div class="field"><label>Who is in it</label><select id="shootChar"><option>Samantha</option><option>Vicky</option></select></div>
+        <div class="field"><label>Where it happens</label><select id="shootLoc"><option>Luxury Bedroom</option><option>Penthouse Pool</option><option>Softbox Studio</option><option>Showroom</option></select></div>
+        <div class="field"><label>What she wears</label><select><option>Black Leather Pants</option><option>Red Lace</option><option>Nude Base</option></select></div>
+      </div>
+      <div style="margin:12px 0;font-size:12px;color:var(--text-dim)">THE SHAPE OF IT</div>
+      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="shape-card selected"><h4>Walk and talk</h4><p>She covers ground while she speaks.</p></div>
+        <div class="shape-card"><h4>Open on eye and pull back</h4><p>Starts tight and reveals the room.</p></div>
+        <div class="shape-card"><h4>Straight to camera</h4><p>Held on her, words carrying it.</p></div>
+        <div class="shape-card"><h4>Explicit</h4><p>Full action sequence.</p></div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn" onclick="createShoot()">Put it on the floor</button>
+        <button class="btn btn-outline" onclick="document.getElementById('newShootForm').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETS -->
+  <div id="sets" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Sets</div>
+        <h1>Where you <span>shoot</span></h1>
+        <p class="sub">Reusable locations. Shoot a test frame to lock the look.</p>
+      </div>
+      <button class="btn">+ New Set</button>
+    </div>
+    <div class="location-grid">
+      <div class="location-card">
+        <div style="height:90px;background:linear-gradient(180deg,#1a1520,#0e0e14);border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px">not shot</div>
+        <strong>Luxury Bedroom</strong>
+        <p style="font-size:12px;color:var(--text-dim);margin:6px 0">Warm lighting, night, soft shadows</p>
+        <button class="btn btn-sm">Shoot a test frame</button>
+      </div>
+      <div class="location-card">
+        <div style="height:90px;background:linear-gradient(180deg,#1a1520,#0e0e14);border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px">not shot</div>
+        <strong>Penthouse Pool</strong>
+        <p style="font-size:12px;color:var(--text-dim);margin:6px 0">City lights, outdoor, night</p>
+        <button class="btn btn-sm">Shoot a test frame</button>
+      </div>
+      <div class="location-card">
+        <div style="height:90px;background:linear-gradient(180deg,#1a1520,#0e0e14);border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px">not shot</div>
+        <strong>Softbox Studio</strong>
+        <p style="font-size:12px;color:var(--text-dim);margin:6px 0">Clean background, controlled light</p>
+        <button class="btn btn-sm">Shoot a test frame</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COURSES -->
+  <div id="courses" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Courses</div>
+        <h1>Course <span>Builder</span></h1>
+        <p class="sub">Taught by Daddy avatar. Upload files or describe what to build.</p>
+      </div>
+      <button class="btn" onclick="addModule()">+ Module</button>
+    </div>
+    <div class="field"><label>Course Title</label><input type="text" id="courseTitle" value="Becoming a Bimbo"></div>
+    <div class="field"><label>AI Instructions</label><textarea class="textarea" id="aiInstr" placeholder="6 modules, submissive training style, quizzes after each..."></textarea></div>
+    <div id="modules">
+      <div class="take-card"><strong>Module 1: Introduction</strong><p style="color:var(--text-dim);font-size:13px;margin-top:4px">Welcome · Video by Daddy</p></div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="generateCourse()">Generate Course with AI</button>
+  </div>
+
+  <!-- LIBRARY -->
+  <div id="library" class="panel">
+    <div class="header">
+      <div>
+        <div class="pill">Library</div>
+        <h1>Productions</h1>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-body"><div class="card-title">Samantha Bedroom Take</div><div class="card-meta">12s · Ready</div></div></div>
+    </div>
   </div>
 </main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle">New Character</h2>
+    <div id="modalBody"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn" onclick="createFromModal()">Create</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function showPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -354,12 +389,66 @@ function showPanel(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   event.target.classList.add('active');
 }
-function showSub(id) {
-  document.querySelectorAll('.subpanel').forEach(p => p.style.display = 'none');
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'block';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+function openBuild(name) {
+  document.getElementById('buildTitle').textContent = name;
+  showPanel('build');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+}
+function showBuildTab(tab) {
+  document.querySelectorAll('.build-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('build-' + tab).style.display = 'block';
+  document.querySelectorAll('#build .tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
+}
+function openModal(type) {
+  const titles = { newchar: 'New Character', outfit: 'Add Outfit' };
+  document.getElementById('modalTitle').textContent = titles[type] || 'New';
+  let body = '';
+  if (type === 'newchar') {
+    body = '<div class="field"><label>Name</label><input type="text" id="newCharName" placeholder="Samantha"></div><div class="field"><label>Identity Lock</label><textarea class="textarea" id="newCharLock" placeholder="Describe the face and body..."></textarea></div><div class="field"><label>Voice Prompt</label><textarea class="textarea" id="newCharVoice" placeholder="Warm, breathy, mid-20s..."></textarea></div>';
+  } else if (type === 'outfit') {
+    body = '<div class="field"><label>Outfit Name</label><input type="text" id="outfitName" placeholder="Black Leather Pants"></div><div class="field"><label>Description</label><textarea class="textarea" placeholder="Glossy black leather, high waist..."></textarea></div>';
+  }
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+function createFromModal() {
+  const name = document.getElementById('newCharName')?.value || 'New Character';
+  const grid = document.getElementById('castGrid');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-img">✨</div><div class="card-body"><span class="badge draft">NEW</span><div class="card-title">${name}</div><div class="card-meta">Just created</div></div>`;
+  card.onclick = () => openBuild(name);
+  grid.prepend(card);
+  document.getElementById('charCount').textContent = grid.children.length;
+  closeModal();
+  alert(name + ' created. Open on Cast to continue building.');
+}
+function showNewShoot() { document.getElementById('newShootForm').style.display = 'block'; }
+function createShoot() {
+  const name = document.getElementById('shootName').value || 'New Shoot';
+  const char = document.getElementById('shootChar').value;
+  const grid = document.getElementById('shootsGrid');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-body"><div class="card-title">${name}</div><div class="card-meta">${char} · Just created</div><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div><div style="margin-top:10px"><button class="btn btn-sm">Carry on</button></div></div>`;
+  grid.prepend(card);
+  document.getElementById('newShootForm').style.display = 'none';
+  alert('Shoot placed on the floor.');
+}
+function addModule() {
+  const n = document.querySelectorAll('#modules .take-card').length + 1;
+  const d = document.createElement('div');
+  d.className = 'take-card';
+  d.innerHTML = `<strong>Module ${n}: New</strong><p style="color:var(--text-dim);font-size:13px;margin-top:4px">Ready for script</p>`;
+  document.getElementById('modules').appendChild(d);
+}
+function generateCourse() {
+  const title = document.getElementById('courseTitle').value;
+  const instr = document.getElementById('aiInstr').value || 'Standard';
+  alert(`Generating "${title}" with Daddy avatar.\nInstructions applied.`);
 }
 </script>
 </body>
