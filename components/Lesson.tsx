@@ -357,6 +357,23 @@ export function BringIn({
   const input = useRef<HTMLInputElement | null>(null);
   const [says, setSays] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
+  const [link, setLink] = useState('');
+
+  /* A GOOGLE LINK NEEDS NO SIGN IN.
+   * Every Google file has an export address that serves the real .docx or
+   * .csv to anybody who can open it, so a shared link is a document - no
+   * OAuth, no consent screen, no token to keep alive. */
+  const fromGoogle = async () => {
+    setReading(true); setSays(null);
+    try {
+      const { readGoogle } = await import('@/lib/courses');
+      const got = await readGoogle(link.trim());
+      await onBlocks(got.blocks, got.source_name);
+      setLink('');
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'That link could not be read.');
+    } finally { setReading(false); }
+  };
 
   const pick = async (file: File | null) => {
     if (!file) return;
@@ -383,16 +400,38 @@ export function BringIn({
         onChange={(e) => void pick(e.target.files?.[0] ?? null)}
         style={{ display: 'none' }}
       />
-      <Btn onClick={() => input.current?.click()} disabled={busy || reading}>
-        {reading ? 'Reading it' : 'Bring in a document'}
-      </Btn>
-      <span style={{ display: 'block', fontSize: 13, color: T.textDim, marginTop: 8, lineHeight: 1.6, maxWidth: '62ch' }}>
-        Word (.docx), plain text (.txt, .md), or a sheet saved as .csv. From
-        Google Docs or Sheets use File, Download and pick Word or Comma
-        Separated Values - that needs no sign in and no sharing settings.
-        Word headings come through as headings.
-      </span>
-      <Says text={says} />
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && link.trim()) { e.preventDefault(); void fromGoogle(); } }}
+            placeholder="paste a Google Docs or Sheets link"
+            style={{
+              flex: '999 1 300px', minWidth: 0, background: T.ink, color: T.text,
+              border: `1px solid ${T.line}`, borderRadius: 999,
+              padding: '12px 17px', fontSize: 14, fontFamily: 'inherit',
+            }}
+          />
+          <Btn onClick={fromGoogle} disabled={busy || reading || !link.trim()}>
+            {reading ? 'Reading it' : 'Bring it in'}
+          </Btn>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <Btn kind="quiet" onClick={() => input.current?.click()} disabled={busy || reading}>
+            {reading ? 'Reading it' : 'Or pick a file off this machine'}
+          </Btn>
+        </div>
+
+        <span style={{ display: 'block', fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
+          A Google link has to be shared - open it, press Share, set "Anyone
+          with the link" to Viewer. From a file: Word (.docx), plain text
+          (.txt, .md), or a sheet saved as .csv. Word headings come through
+          as headings either way.
+        </span>
+        <Says text={says} />
+      </div>
     </div>
   );
 }

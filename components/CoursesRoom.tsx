@@ -65,7 +65,7 @@ export default function CoursesRoom() {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Courses</Eyebrow>
       <Title lead="The" gold="courses" />
       <Lead>
         Write what a course is in a paragraph and it comes back as modules and

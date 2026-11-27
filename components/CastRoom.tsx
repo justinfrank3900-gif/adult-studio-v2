@@ -20,7 +20,8 @@ import { T } from '@/lib/tokens';
 import { Btn, Eyebrow, Lead, Panel, Title } from './kit';
 import { Area, Empty, Field, Grid, Pick, Row, Says, Tile, Working } from './parts';
 import { addPerformer, faceOf, keepStill, retirePerformer, savePerformer, seedOf } from '@/lib/data';
-import { make } from '@/lib/generate';
+import { make, registerCharacter } from '@/lib/generate';
+import FromMine, { PLAIN_PORTRAIT } from './FromMine';
 import type { Library } from './Studio';
 import type { Identity } from '@/lib/types';
 import VoicePanel from './VoicePanel';
@@ -53,7 +54,7 @@ export default function CastRoom({ lib }: { lib: Library }) {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Pornstars</Eyebrow>
       <Title lead="Who is" gold="on camera" />
       <Lead>
         Everyone the studio can film. The first picture of a performer makes her;
@@ -81,7 +82,7 @@ export default function CastRoom({ lib }: { lib: Library }) {
                   badge={seeded ? null : 'no seed'}
                   tone={seeded ? undefined : 'warn'}
                   note={seeded
-                    ? `${stills} ${stills === 1 ? 'still' : 'stills'}${c.voice_id ? '' : ' - no voice yet'}`
+                    ? `${stills} ${stills === 1 ? 'still' : 'stills'}${c.provider_character_id ? ', registered' : ''}${c.voice_id ? '' : ' - no voice yet'}`
                     : 'Not anchored yet. Shoot her first picture.'}
                   onClick={() => setWho(c.id)}
                 />
@@ -118,7 +119,7 @@ function NewPerformer({ lib, onDone, onCancel }: {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Pornstars</Eyebrow>
       <Title lead="A new" gold="performer" />
       <Lead>
         Two things: what she is called, and what she looks like in words. The
@@ -196,6 +197,7 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
         what: 'still',
         prompt,
         identity_id: who.id,
+        character: who.provider_character_id,
         seed_url: seed,
         label: `${who.name}_${angle}`,
         aspect: '9:16',
@@ -216,6 +218,71 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
       setOk(seed ? 'Shot and kept.' : 'She is anchored now. Every picture from here is an edit of this one.');
     } catch (e) {
       setSays(e instanceof Error ? e.message : 'The picture could not be made.');
+    } finally { setBusy(null); }
+  };
+
+  /* HER OWN PICTURES, AS THE PROVIDER'S OWN URLS.
+   * Only these can be used to register her, because the provider only
+   * accepts urls it minted for this account. */
+  const hersAtTheProvider = mine
+    .map((a) => (typeof a.meta?.spicy_url === 'string' ? a.meta.spicy_url : null))
+    .filter((u): u is string => Boolean(u));
+
+  /**
+   * Build her from a photograph or a frame of a video.
+   *
+   * This is a DIFFERENT route from shooting her: the provider will not edit
+   * an uploaded picture, so this asks it to draw a new person who looks
+   * like the one in the frame. Everything after it is ordinary.
+   */
+  const fromMine = async (referenceImage: string, words: string) => {
+    setBusy('mine'); setSays(null); setOk(null);
+    try {
+      const made = await make({
+        what: 'still',
+        prompt: [look.trim(), words || PLAIN_PORTRAIT].filter(Boolean).join(' '),
+        identity_id: who.id,
+        reference_image: referenceImage,
+        label: `${who.name}_from_mine`,
+        aspect: '9:16',
+      });
+      await keepStill({
+        identityId: who.id,
+        spicyUrl: made.provider_url,
+        ourUrl: made.url,
+        storagePath: made.path,
+        label: 'From my own picture',
+        angle: 'from_mine',
+        masterRef: !seed,
+        extra: { from: 'upload' },
+      });
+      await lib.reload();
+      setOk(seed
+        ? 'Kept. Make it the anchor below if that is the one she should look like.'
+        : 'That is her now. Every picture from here holds that face.');
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'She could not be made from that.');
+      throw e;
+    } finally { setBusy(null); }
+  };
+
+  /**
+   * Register her with the provider.
+   *
+   * Up to three of her own pictures become a character, and the id that
+   * comes back goes on every picture AND every clip from then on. The edit
+   * chain only ever worked on stills; this is the only thing that holds a
+   * face through motion.
+   */
+  const lockIn = async () => {
+    setBusy('lock'); setSays(null); setOk(null);
+    try {
+      const id = await registerCharacter(who.name, hersAtTheProvider.slice(0, 3));
+      await savePerformer(who.id, { provider_character_id: id });
+      await lib.reload();
+      setOk('She is registered. Every picture and every clip names her now, instead of hoping she comes out the same.');
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'She could not be registered.');
     } finally { setBusy(null); }
   };
 
@@ -272,6 +339,28 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
         voiceLabel={lib.voices.find((v) => v.id === who.voice_id)?.label ?? null}
         onChanged={lib.reload}
       />
+
+      <Panel style={{ marginBottom: 18 }} tone={who.provider_character_id ? 'lit' : 'plain'}>
+        <Eyebrow>{who.provider_character_id ? 'Registered with the provider' : 'Not registered yet'}</Eyebrow>
+        <p style={{ margin: '0 0 14px', fontSize: 15, color: T.textMuted, lineHeight: 1.65 }}>
+          {who.provider_character_id
+            ? 'Every picture and every clip names her, so the face is held by reference rather than by resemblance. This is the only thing that holds a face through motion.'
+            : hersAtTheProvider.length
+              ? `Registering her turns ${Math.min(3, hersAtTheProvider.length)} of her pictures into a character the provider knows by name. It costs about the price of one picture, and it is what stops her drifting in video.`
+              : 'She needs at least one picture made in the studio before she can be registered.'}
+        </p>
+        {!who.provider_character_id ? (
+          <Btn kind="gold" onClick={lockIn} disabled={busy !== null || hersAtTheProvider.length === 0}>
+            {busy === 'lock' ? 'Registering' : 'Lock her in'}
+          </Btn>
+        ) : null}
+      </Panel>
+
+      <Panel style={{ marginBottom: 18 }}>
+        <Eyebrow>Build her from my own</Eyebrow>
+        <FromMine name={who.name} busy={busy !== null} onMade={fromMine} />
+        {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
+      </Panel>
 
       <Panel style={{ marginBottom: 18 }}>
         <Area

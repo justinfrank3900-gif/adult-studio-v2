@@ -111,6 +111,7 @@ export default function PhotosetRoom({ lib }: { lib: Library }) {
           what: 'still',
           prompt,
           identity_id: performer.id,
+          character: performer.provider_character_id,
           /* THE SAME anchor every time, never the frame before. */
           seed_url: seed,
           label: `${performer.name}_${key}`,
@@ -159,7 +160,7 @@ export default function PhotosetRoom({ lib }: { lib: Library }) {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Scenes</Eyebrow>
       <Title lead="Shoot a" gold="set" />
       <Lead>
         One performer, one outfit, one room, and as many poses as you tick.

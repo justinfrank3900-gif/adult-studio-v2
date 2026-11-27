@@ -31,7 +31,7 @@ export async function token(): Promise<string> {
 export async function loadCast(): Promise<Identity[]> {
   const { data, error } = await supa()
     .from('adult_identities')
-    .select('id,name,voice_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
+    .select('id,name,voice_id,provider_character_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
     .eq('dealer_id', DEALER_ID)
     .is('retired_at', null)
     .order('name');
@@ -108,7 +108,7 @@ export async function addPerformer(name: string, look: string): Promise<Identity
   const { data, error } = await supa()
     .from('adult_identities')
     .insert({ dealer_id: DEALER_ID, name, identity_lock_prompt: look, master_ref_asset_ids: [] })
-    .select('id,name,voice_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
+    .select('id,name,voice_id,provider_character_id,master_ref_asset_ids,identity_lock_prompt,is_default,retired_at')
     .single();
   if (error) hopeless('Adding the performer', error.message);
   return data as Identity;

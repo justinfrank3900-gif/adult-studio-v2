@@ -76,7 +76,7 @@ export default function SetsRoom({ lib }: { lib: Library }) {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Scenes</Eyebrow>
       <Title lead="The" gold="sets" />
       <Lead>
         Every place the studio shoots. One set is picked for a whole shoot, so

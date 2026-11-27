@@ -104,6 +104,65 @@ export async function POST(req: Request) {
 
   const doing = String(body.doing || '');
 
+  /* ------------------------------------------------- a link to a Google file
+   *
+   * "NEED TO ADD ABILITY TO UPLOAD GOOGLE DOCS OR GOOGLE SHEETS."
+   *
+   * Without a Google sign-in there is exactly one way in, and it is a good
+   * one: every Google file has an export address that serves the real
+   * .docx or .csv to anybody who can open the file. So a shared link
+   * becomes a document here with no OAuth, no consent screen and no token
+   * to keep alive.
+   *
+   * A file that is NOT shared answers with a sign-in page rather than an
+   * error, which would otherwise come back as "that document had no
+   * writing in it" - the most confusing possible wording for a permissions
+   * problem. So the sign-in page is detected and named. */
+  if (doing === 'google') {
+    const link = String(body.url || '').trim();
+    if (!link) return no('Paste the Google link first.');
+
+    const doc = /docs\.google\.com\/document\/d\/([A-Za-z0-9_-]+)/.exec(link);
+    const sheet = /docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)/.exec(link);
+    if (!doc && !sheet) {
+      if (/drive\.google\.com/.test(link)) {
+        return no('That is a Drive link to a file rather than a Google Doc or Sheet. Open it in Docs or Sheets and copy the address from there.');
+      }
+      return no('That is not a Google Docs or Google Sheets address. Open the file, press Share, copy the link, and paste that.');
+    }
+
+    const gid = /[#&?]gid=([0-9]+)/.exec(link)?.[1];
+    const exportUrl = doc
+      ? `https://docs.google.com/document/d/${doc[1]}/export?format=docx`
+      : `https://docs.google.com/spreadsheets/d/${sheet![1]}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+
+    let res: Response;
+    try {
+      res = await fetch(exportUrl, { redirect: 'follow' });
+    } catch {
+      return no('Google could not be reached to fetch that file.');
+    }
+
+    const type = res.headers.get('content-type') || '';
+    if (!res.ok || /text\/html/i.test(type)) {
+      return no(
+        'Google would not hand that file over, which almost always means it is not shared. Open it, press Share, set "Anyone with the link" to Viewer, then paste the link again. Nothing else needs changing.',
+      );
+    }
+
+    const bytes = Buffer.from(await res.arrayBuffer());
+    try {
+      const blocks = doc ? blocksFromDocx(bytes) : blocksFromCsv(bytes.toString('utf8'));
+      if (!blocks.length) return no('That file came through but had no writing in it that could be laid out.');
+      return NextResponse.json({
+        blocks: cleanBlocks(blocks),
+        source_name: doc ? 'a Google Doc' : 'a Google Sheet',
+      });
+    } catch (e) {
+      return no(e instanceof Error ? e.message : 'That file came through but could not be read.');
+    }
+  }
+
   if (!thinkConfigured()) {
     return no('This deployment has no provider key, so nothing could be written. Add SPICYAPI_KEY in Vercel and redeploy. Nothing was spent.');
   }

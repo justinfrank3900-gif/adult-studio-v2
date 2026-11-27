@@ -19,7 +19,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { BUCKET, DEALER_ID, SUPABASE_ANON, SUPABASE_URL } from '@/lib/config';
-import { adultGenerateStill, adultGenerateVideo, adultImageConfigured, adultVideoConfigured } from '@/lib/providers';
+import {
+  adultAddCharacterView, adultGenerateStill, adultGenerateVideo, adultImageConfigured,
+  adultMakeCharacter, adultVideoConfigured,
+} from '@/lib/providers';
 
 export const runtime = 'nodejs';
 /* A still comes back in well under a minute. A clip is the provider rendering
@@ -81,14 +84,39 @@ export async function POST(req: Request) {
   const identityId = body.identity_id ? String(body.identity_id) : null;
   const seed = body.seed_url ? String(body.seed_url) : null;
   const label = String(body.label || what);
+  /* Her registered character, when she has one. Strongest of the three
+   * ways a face is held, and the only one video understands. */
+  const character = body.character ? String(body.character) : null;
+  /* A photograph from outside. Redrawn, never edited - the provider
+   * refuses an uploaded picture as an input by design. */
+  const referenceImage = body.reference_image ? String(body.reference_image) : null;
 
   try {
+    /* ---- REGISTERING HER WITH THE PROVIDER ---- */
+    if (what === 'character') {
+      if (!adultImageConfigured()) {
+        return no('The image provider is not set up on this deployment yet. Add SPICYAPI_KEY in Vercel and redeploy.');
+      }
+      const urls = Array.isArray(body.spicy_urls) ? (body.spicy_urls as unknown[]).map(String) : [];
+      const made = await adultMakeCharacter(String(body.name || 'Her'), urls);
+      return NextResponse.json({ character: made.id, sheet: made.sheet });
+    }
+
+    if (what === 'character_view') {
+      const id = String(body.character || '');
+      const url = String(body.spicy_url || '');
+      if (!id || !url) return no('Which character, and which picture?');
+      await adultAddCharacterView(id, url, label);
+      return NextResponse.json({ ok: true });
+    }
+
     if (what === 'clip') {
       if (!adultVideoConfigured()) {
         return no('The video provider is not set up on this deployment yet, so nothing was generated. ADULT_VIDEO_API_URL and ADULT_VIDEO_API_KEY are missing.');
       }
       const made = await adultGenerateVideo({
         prompt,
+        character,
         referenceImageUrl: seed,
         durationSeconds: Math.min(30, Math.max(2, Number(body.duration) || 5)),
         action: body.action ? String(body.action) : null,
@@ -103,10 +131,12 @@ export async function POST(req: Request) {
 
     const made = await adultGenerateStill({
       prompt,
+      character,
       /* An edit can only anchor on a url the provider itself served. Handing
        * it our own copy would come back as a fresh face wearing the right
        * clothes, which is the failure that looks like success. */
       spicyReferenceUrl: seed,
+      referenceImage,
       aspectRatio: String(body.aspect || '9:16'),
       numImages: 1,
     });

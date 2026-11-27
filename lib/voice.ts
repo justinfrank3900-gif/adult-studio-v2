@@ -1,188 +1,172 @@
 // lib/voice.ts
 //
-// ELEVENLABS, THE THREE CALLS THIS STUDIO NEEDS.
+// VOICES, ON THE KEY THIS PROJECT ALREADY HAS.
 //
-// Designing a voice from a description rather than cloning one from a
-// recording, because there is nobody to record: these performers do not
-// exist. ElevenLabs' voice design takes a paragraph about how somebody
-// sounds and returns previews; one is chosen and becomes a real voice on
-// the account.
+// This was written against ElevenLabs first and then thrown away, because
+// Justin's answer was four words: "ELEVEN LABS IS NOT SET UP". A feature
+// that needs a secret nobody has added is not a feature, and the fix was
+// not to ask again - SpicyAPI sells speech on the same key as the pictures
+// and the video. One vendor, one key, one bill, nobody who can cut the
+// studio off halfway through.
 //
-// WHY FOUR PREVIEWS AND NOT WHATEVER THEY SEND.
-// Their create-previews call has no count parameter - it returns its own
-// fixed number, three when this was checked - so four means two calls with
-// different random seeds, combined. One option to pick from is not a
-// choice, and asking the same question twice with no seed risks the same
-// three answers back.
+// WHAT IS DIFFERENT FROM DESIGNING A VOICE.
 //
-// WHY guidance_scale IS 3.
-// Their own documented range is 3-8 and their own guidance says high
-// numbers "can cause voice to sound artificial or robotic". Unset means
-// whatever they default to server-side, which their own pages describe
-// inconsistently. 3 is the natural end, chosen on purpose.
+// ElevenLabs builds a voice from a paragraph describing how somebody
+// sounds. SpicyAPI's equivalent is PAUSED - their own docs say a request
+// with a description comes back 400 voice_design_unavailable and is not
+// charged, because since 10 Oct 2026 their provider only offers it in one
+// region. So this works the other way round: they publish a list of ready
+// voices, and the studio auditions them. Same question answered - "is that
+// her" - and answered faster, because there is nothing to generate before
+// you can listen.
+//
+// Their expressive models take INSTRUCTIONS, which is the part worth
+// keeping from the design idea: "slower, lower, like she is standing very
+// close" shapes a preset voice without building a new one.
 
-const ELEVEN = 'https://api.elevenlabs.io/v1';
-const DESIGN_MODEL = 'eleven_ttv_v3';
-const GUIDANCE = 3;
+const BASE = (process.env.ADULT_IMAGE_API_URL || 'https://api.spicyapi.com/v1').replace(/\/$/, '');
 
 export function voiceConfigured(): boolean {
-  return Boolean(process.env.ELEVENLABS_API_KEY);
+  return Boolean(process.env.ADULT_IMAGE_API_KEY || process.env.SPICYAPI_KEY);
 }
 
 function key(): string {
-  const k = process.env.ELEVENLABS_API_KEY;
+  const k = process.env.ADULT_IMAGE_API_KEY || process.env.SPICYAPI_KEY;
   if (!k) {
-    throw new Error(
-      'This deployment has no ElevenLabs key, so no voice could be made. Add ELEVENLABS_API_KEY in Vercel - Project - Settings - Environment Variables, and redeploy. Nothing was spent.',
-    );
+    throw new Error('This deployment has no provider key, so no voice can be heard. Add SPICYAPI_KEY in Vercel and redeploy. Nothing was spent.');
   }
   return k;
 }
 
-async function elevenJson(path: string, init: RequestInit): Promise<Record<string, unknown>> {
-  const res = await fetch(`${ELEVEN}${path}`, {
+/**
+ * The models, best first.
+ *
+ * Voice 3 takes inline tags - [whispers], [sighs] - which is most of what
+ * makes a line sound like a person rather than a reader, so it leads. Voice
+ * 1 expressive is the one that takes written direction. Voice 1 is the
+ * widest list, 45 of them.
+ *
+ * A voice knows which models can speak it (the list endpoint says so), so
+ * nothing here has to guess: the studio picks the best model THAT VOICE
+ * supports.
+ */
+const MODEL_RANK = [
+  'spicy-voice-3',
+  'spicy-voice-2',
+  'spicy-voice-1-expressive',
+  'spicy-voice-2-flash',
+  'spicy-voice-3-flash',
+  'spicy-voice-1',
+  'spicy-voice-1-custom',
+];
+
+/** Which models accept written direction. Voice 3 rejects it outright. */
+const TAKES_INSTRUCTIONS = new Set([
+  'spicy-voice-1-expressive', 'spicy-voice-2', 'spicy-voice-2-flash',
+]);
+
+/** Their documented ceiling on one line of input, per model family. */
+function maxInput(model: string): number {
+  return model.startsWith('spicy-voice-1') ? 600 : 5000;
+}
+
+export function bestModelFor(models: string[]): string {
+  for (const m of MODEL_RANK) if (models.includes(m)) return m;
+  return models[0] || 'spicy-voice-1';
+}
+
+export function takesInstructions(model: string): boolean {
+  return TAKES_INSTRUCTIONS.has(model);
+}
+
+async function spicy(path: string, init: RequestInit): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { 'xi-api-key': key(), 'Content-Type': 'application/json', ...(init.headers || {}) },
+    headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json', ...(init.headers || {}) },
   });
   const text = await res.text();
   if (!res.ok) {
-    /* Their own sentence where they give one. A 401 here means the key, a
-     * 402 means the plan ran out of characters, and "ElevenLabs refused
-     * (402)" sends somebody hunting the wrong problem. */
     let said = '';
     try {
-      const j = JSON.parse(text);
-      said = j?.detail?.message || j?.detail?.status || j?.message || '';
+      const j = JSON.parse(text) as { error?: { message?: string; code?: string }; message?: string };
+      said = j?.error?.message || j?.message || '';
     } catch { /* not json */ }
-    throw new Error(said
-      ? `ElevenLabs refused that: ${said}`
-      : `ElevenLabs refused that (${res.status}). ${text.slice(0, 200)}`);
+    throw new Error(said ? `The voice provider refused that: ${said}` : `The voice provider refused that (${res.status}). ${text.slice(0, 200)}`);
   }
-  return JSON.parse(text) as Record<string, unknown>;
+  try { return JSON.parse(text) as Record<string, unknown>; }
+  catch { throw new Error('The voice provider answered with something that was not JSON.'); }
 }
 
-export type Preview = { generated_voice_id: string; audio_base_64: string };
+export type VoiceChoice = {
+  /** What to send as `voice`. A preset name, or a vc_ id for a cloned one. */
+  id: string;
+  name: string;
+  /** preset | cloned | designed */
+  kind: string;
+  models: string[];
+};
 
-async function previewsOnce(description: string, sample: string, seed: number): Promise<Preview[]> {
-  const body = await elevenJson('/text-to-voice/create-previews', {
-    method: 'POST',
-    body: JSON.stringify({
-      voice_description: description.slice(0, 1000),
-      text: sample.slice(0, 1000),
-      model_id: DESIGN_MODEL,
-      guidance_scale: GUIDANCE,
-      should_enhance: true,
-      seed,
-    }),
-  });
-  return (body.previews || []) as Preview[];
-}
-
-async function remixOnce(voiceId: string, direction: string, sample: string, seed: number): Promise<Preview[]> {
-  const body = await elevenJson(`/text-to-voice/${voiceId}/remix`, {
-    method: 'POST',
-    body: JSON.stringify({
-      voice_description: direction.slice(0, 1000),
-      text: sample.slice(0, 1000),
-      /* The remix endpoint's own docs list no model_id field, so there is
-       * nothing to set there. */
-      guidance_scale: GUIDANCE,
-      should_enhance: true,
-      seed,
-    }),
-  });
-  return (body.previews || []) as Preview[];
-}
-
-function fourOf(a: Preview[], b: Preview[]): Preview[] {
-  const seen = new Set<string>();
-  return [...a, ...b].filter((p) => {
-    if (seen.has(p.generated_voice_id)) return false;
-    seen.add(p.generated_voice_id);
-    return true;
-  }).slice(0, 4);
-}
-
-const seed = () => Math.floor(Math.random() * 1_000_000);
-
-/** Four voices to choose between, built from a description. */
-export async function designFour(description: string, sample: string): Promise<Preview[]> {
-  const [a, b] = await Promise.all([
-    previewsOnce(description, sample, seed()),
-    previewsOnce(description, sample, seed()),
-  ]);
-  const four = fourOf(a, b);
-  if (!four.length) throw new Error('ElevenLabs returned no voices to choose from.');
-  return four;
+/**
+ * Every voice this account can use.
+ *
+ * Read live rather than written down here. Their list grows, the 45 Voice 1
+ * names are not published anywhere, and a hardcoded list would be a list of
+ * voices that used to exist.
+ */
+export async function listVoices(): Promise<VoiceChoice[]> {
+  const body = await spicy('/voices?limit=200', { method: 'GET' });
+  const rows = (body.data || []) as Record<string, unknown>[];
+  return rows.map((v) => ({
+    id: String(v.id || v.name || ''),
+    name: String(v.name || v.id || ''),
+    kind: String(v.kind || 'preset'),
+    models: Array.isArray(v.models) ? (v.models as unknown[]).map(String) : [],
+  })).filter((v) => v.id);
 }
 
 /**
- * Four changes to a voice she already has.
+ * Her, saying something.
  *
- * ElevenLabs only remixes a voice already SAVED on the account, never a
- * preview that was never committed - checked, because the obvious-looking
- * alternative is not an endpoint they expose. Which is the right moment for
- * this to exist anyway: you are not fixing a preview, you are adjusting the
- * voice you already put on her.
+ * Comes back as a url on their CDN rather than as bytes, which is what
+ * their speech endpoint does by default. Handed straight to an <audio> -
+ * a line typed to hear what she sounds like is not an asset, and a bucket
+ * full of them is just a bucket full of them.
  */
-export async function remixFour(voiceId: string, direction: string, sample: string): Promise<Preview[]> {
-  const [a, b] = await Promise.all([
-    remixOnce(voiceId, direction, sample, seed()),
-    remixOnce(voiceId, direction, sample, seed()),
-  ]);
-  const four = fourOf(a, b);
-  if (!four.length) throw new Error('ElevenLabs returned no changes to choose from.');
-  return four;
-}
+export async function say(opts: {
+  voice: string;
+  text: string;
+  model?: string;
+  instructions?: string | null;
+}): Promise<{ url: string; seconds: number; cost: number }> {
+  const model = opts.model || 'spicy-voice-1';
+  const limit = maxInput(model);
 
-/** Turn the chosen preview into a real voice on the account. */
-export async function keepVoice(name: string, description: string, generatedVoiceId: string): Promise<string> {
-  const body = await elevenJson('/text-to-voice/create-voice-from-preview', {
-    method: 'POST',
-    body: JSON.stringify({
-      voice_name: name.slice(0, 100),
-      voice_description: description.slice(0, 1000),
-      generated_voice_id: generatedVoiceId,
-    }),
-  });
-  const id = String(body.voice_id || '');
-  if (!id) throw new Error('ElevenLabs kept the voice but did not say which one it is.');
-  return id;
-}
-
-/** Her, saying something. Returns mp3 bytes. */
-export async function say(voiceId: string, text: string, settings: Record<string, unknown> = {}): Promise<Buffer> {
-  const { model_id = 'eleven_multilingual_v2', ...rest } = settings as { model_id?: string };
-  const known = ['stability', 'similarity_boost', 'style', 'use_speaker_boost', 'speed'] as const;
-  const voice_settings: Record<string, unknown> = {};
-  for (const k of known) {
-    const v = (rest as Record<string, unknown>)[k];
-    if (v !== undefined) voice_settings[k] = v;
+  const text = opts.text.trim();
+  if (!text) throw new Error('There is nothing written for her to say.');
+  if (text.length > limit) {
+    throw new Error(`That line is ${text.length} characters and this voice takes ${limit}. Shorten it, or split it in two.`);
   }
 
-  const res = await fetch(`${ELEVEN}/text-to-speech/${voiceId}`, {
-    method: 'POST',
-    headers: { 'xi-api-key': key(), 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-    body: JSON.stringify({
-      text: text.slice(0, 2500),
-      model_id,
-      voice_settings: {
-        stability: 0.45,
-        similarity_boost: 0.85,
-        style: 0.35,
-        use_speaker_boost: true,
-        ...voice_settings,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const raw = await res.text();
-    if (res.status === 404 && /voice_not_found/.test(raw)) {
-      throw new Error('Her voice is not on this ElevenLabs account any more, so there is nothing to speak with. Design her a new one.');
-    }
-    throw new Error(`ElevenLabs would not speak that (${res.status}). ${raw.slice(0, 200)}`);
+  const body: Record<string, unknown> = {
+    model,
+    input: text,
+    voice: opts.voice,
+    response_format: 'mp3',
+  };
+  /* Sent only where it is accepted. Voice 3 answers 400 to an instructions
+   * field it did not ask for, and a refusal about a field nobody typed is
+   * the worst kind of error message. */
+  if (opts.instructions && takesInstructions(model)) {
+    body.instructions = opts.instructions.slice(0, 1600);
   }
 
-  return Buffer.from(await res.arrayBuffer());
+  const said = await spicy('/audio/speech', { method: 'POST', body: JSON.stringify(body) });
+  const url = String(said.url || '');
+  if (!url) throw new Error('The voice provider made the clip but did not say where it is.');
+
+  return {
+    url,
+    seconds: Number(said.duration_s) || 0,
+    cost: Number(said.cost_usd) || 0,
+  };
 }

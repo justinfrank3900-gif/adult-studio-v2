@@ -204,3 +204,9 @@ export async function readFile(file: File): Promise<{ blocks: Block[]; source_na
   if (!res.ok) throw new Error((said?.error as string) || `That file could not be read (${res.status}).`);
   return { blocks: cleanBlocks(said?.blocks), source_name: String(said?.source_name || file.name) };
 }
+
+/** A Google Docs or Sheets link, turned into blocks. */
+export async function readGoogle(url: string): Promise<{ blocks: Block[]; source_name: string }> {
+  const said = await ask<{ blocks: Block[]; source_name: string }>({ doing: 'google', url });
+  return { blocks: cleanBlocks(said.blocks), source_name: said.source_name };
+}

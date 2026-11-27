@@ -193,6 +193,7 @@ function TakeCard({ lib, shoot, take, n, opensOn, onChanged }: {
         what: 'still',
         prompt,
         identity_id: shoot.identity_id,
+        character: who?.provider_character_id ?? null,
         /* The anchor. An edit can only hold on a url the provider served,
          * which is why the provider url is what the chain carries and our
          * own copy is only what the page shows. */
@@ -241,6 +242,7 @@ function TakeCard({ lib, shoot, take, n, opensOn, onChanged }: {
         what: 'clip',
         prompt,
         identity_id: shoot.identity_id,
+        character: who?.provider_character_id ?? null,
         seed_url: from,
         duration: Math.min(30, Math.max(2, Number(seconds) || 5)),
         label: `${shoot.name || 'take'}_${n}_clip`,

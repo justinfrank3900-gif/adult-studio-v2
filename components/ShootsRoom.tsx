@@ -47,7 +47,7 @@ export default function ShootsRoom({ lib, onOpen }: { lib: Library; onOpen: (id:
 
   return (
     <>
-      <Eyebrow>The floor</Eyebrow>
+      <Eyebrow>Scenes</Eyebrow>
       <Title lead="Every" gold="shoot" />
       <Lead>
         One performer and one set per shoot, so the room and the face do not

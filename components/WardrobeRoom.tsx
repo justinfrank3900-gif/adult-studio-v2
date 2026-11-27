@@ -63,6 +63,7 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
         what: 'still',
         prompt: `${o.prompt_text} ${SWATCH}`,
         identity_id: wearer.id,
+        character: wearer.provider_character_id,
         seed_url: seed,
         label: `${wearer.name}_${o.label}`,
         aspect: '9:16',
@@ -100,7 +101,7 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
 
   return (
     <>
-      <Eyebrow>The company</Eyebrow>
+      <Eyebrow>Pornstars</Eyebrow>
       <Title lead="The" gold="wardrobe" />
       <Lead>
         Every piece, and what it looks like on each performer. Pick who is

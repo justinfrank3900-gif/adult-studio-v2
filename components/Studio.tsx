@@ -2,18 +2,25 @@
 
 // components/Studio.tsx
 //
-// The shell: the company down the left, the work in the middle.
+// THE SHELL: FOUR SECTIONS, NOT A LIST OF NINE ROOMS.
 //
-// Laid out the same way as the TYME Avatar Studio for one reason that is not
-// taste. The five steps of a shoot belong to the shoot that is open, so they
-// live on the rail above the work; the things that get REUSED - the cast, the
-// wardrobe, the sets - are standing lists that outlive any one shoot, so they
-// live in the nav. Putting the steps in both places is what made the rebuilt
-// studio still read as the old one.
+// "NEED THE MENUS SEPERATED. cAST WARDROBE AND EVERYTHING BUIDLING THE
+// AVATAR IN pORNSTARS SECTION. THE SCENES WOULD HAVE THE SHOOT A SET SETS
+// AND THE SHHOTS AND THEN cOURSES IS SEPERATE... NEED AN AI GIRLFRIEND
+// SECTION."
+//
+// Those are four different jobs done on four different days, and a flat
+// list of nine made every one of them look like part of the same errand.
+// The grouping is his, word for word, because he is the one who has to find
+// things in it at one in the morning.
+//
+// The masthead and the lit edges are the portal's, from the same tokens, so
+// a screen here put beside a TYME screen reads as the same product rather
+// than as something that borrowed the colours.
 
 import { useCallback, useEffect, useState } from 'react';
 import { T } from '@/lib/tokens';
-import { Btn } from './kit';
+import { Btn, GOLD_FILL } from './kit';
 import { Says } from './parts';
 import {
   Refused, loadAssets, loadCast, loadSets, loadShoots, loadVoices, loadWardrobe,
@@ -27,16 +34,39 @@ import ShootsRoom from './ShootsRoom';
 import ShootRoom from './ShootRoom';
 import PhotosetRoom from './PhotosetRoom';
 import CoursesRoom from './CoursesRoom';
+import StillsRoom from './StillsRoom';
+import GirlfriendRoom from './GirlfriendRoom';
+import SocialRoom from './SocialRoom';
 
-type Room = 'floor' | 'cast' | 'wardrobe' | 'sets' | 'photoset' | 'courses';
+type Room =
+  | 'cast' | 'wardrobe'
+  | 'floor' | 'sets' | 'photoset' | 'stills'
+  | 'courses'
+  | 'girlfriend'
+  | 'social';
 
-const ROOMS: { key: Room; label: string; detail: string }[] = [
-  { key: 'floor', label: 'The floor', detail: 'every shoot' },
-  { key: 'cast', label: 'Cast', detail: 'who is on camera' },
-  { key: 'wardrobe', label: 'Wardrobe', detail: 'what they wear' },
-  { key: 'sets', label: 'Sets', detail: 'where you shoot' },
-  { key: 'photoset', label: 'Shoot a set', detail: 'a roll of stills' },
-  { key: 'courses', label: 'Courses', detail: 'what you sell' },
+type Section = { name: string; rooms: { key: Room; label: string; detail: string }[] };
+
+const SECTIONS: Section[] = [
+  {
+    name: 'Pornstars',
+    rooms: [
+      { key: 'cast', label: 'Cast', detail: 'who is on camera' },
+      { key: 'wardrobe', label: 'Wardrobe', detail: 'what they wear' },
+    ],
+  },
+  {
+    name: 'Scenes',
+    rooms: [
+      { key: 'floor', label: 'Shoots', detail: 'scenes with takes' },
+      { key: 'photoset', label: 'Shoot a set', detail: 'a roll of stills' },
+      { key: 'stills', label: 'Stills', detail: 'one picture at a time' },
+      { key: 'sets', label: 'Sets', detail: 'where you shoot' },
+    ],
+  },
+  { name: 'Courses', rooms: [{ key: 'courses', label: 'Courses', detail: 'what you sell' }] },
+  { name: 'AI girlfriend', rooms: [{ key: 'girlfriend', label: 'Companions', detail: 'she talks back' }] },
+  { name: 'Out there', rooms: [{ key: 'social', label: 'Social', detail: 'post it' }] },
 ];
 
 export type Library = {
@@ -50,7 +80,7 @@ export type Library = {
 };
 
 export default function Studio({ onSignOut }: { onSignOut: () => void }) {
-  const [room, setRoom] = useState<Room>('floor');
+  const [room, setRoom] = useState<Room>('cast');
   const [open, setOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [says, setSays] = useState<string | null>(null);
@@ -84,83 +114,90 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
   useEffect(() => { void reload(); }, [reload]);
 
   const lib: Library = { cast, assets, outfits, sets, shoots, voices, reload };
-
-  const navBtn = (active: boolean) => ({
-    display: 'block', width: '100%', textAlign: 'left' as const,
-    background: active ? T.raised : 'transparent',
-    border: `1px solid ${active ? T.line : 'transparent'}`,
-    borderRadius: 12, padding: '11px 14px', cursor: 'pointer',
-    fontFamily: 'inherit', color: active ? T.text : T.textMuted, minHeight: 46,
-  });
-
   const openShoot = shoots.find((s) => s.id === open) || null;
 
   return (
-    <div style={{ maxWidth: 1340, margin: '0 auto', padding: '30px 22px 90px' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: 12, marginBottom: 26,
-      }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
-          <span style={{ width: 9, height: 9, borderRadius: '50%', background: T.gold }} />
-          <span style={{
-            fontSize: 13, fontWeight: 700, letterSpacing: '0.2em',
-            color: T.textDim, textTransform: 'uppercase',
-          }}>The Studio</span>
-        </span>
-        <Btn kind="quiet" onClick={onSignOut}>Sign out</Btn>
-      </header>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 22px 90px' }}>
+      <Masthead onSignOut={onSignOut} />
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 30, alignItems: 'flex-start' }}>
-        <nav aria-label="Studio" style={{ flex: '0 0 226px', minWidth: 196 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 34, alignItems: 'flex-start' }}>
+        <nav aria-label="Studio" style={{ flex: '0 0 232px', minWidth: 200 }}>
           {openShoot ? (
             <button
               type="button"
-              onClick={() => setRoom('floor')}
+              onClick={() => { setRoom('floor'); }}
               style={{
                 display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
-                fontFamily: 'inherit', background: T.raised, color: T.text,
+                fontFamily: 'inherit', background: T.raisedGrad, color: T.text,
                 border: `1px solid ${T.line}`, borderLeft: `3px solid ${T.gold}`,
-                borderRadius: 12, padding: '13px 15px', marginBottom: 22,
+                borderRadius: 12, padding: '13px 15px', marginBottom: 24,
+                boxShadow: T.lift1,
               }}
             >
               <span style={{
                 display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: '0.16em',
                 color: T.textDim, textTransform: 'uppercase',
-              }}>Open now</span>
+              }}>On the floor</span>
               <span style={{ display: 'block', fontSize: 15, fontWeight: 700, marginTop: 5, lineHeight: 1.35 }}>
-                {openShoot.name || openShoot.title.slice(0, 48)}
+                {openShoot.name || openShoot.title.slice(0, 44)}
               </span>
             </button>
           ) : null}
 
-          <div style={{
-            fontSize: 13, fontWeight: 700, letterSpacing: '0.16em', color: T.textDim,
-            textTransform: 'uppercase', margin: '0 0 10px 14px',
-          }}>The company</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {ROOMS.map((r) => (
-              <button
-                key={r.key}
-                type="button"
-                style={navBtn(room === r.key)}
-                onClick={() => { setRoom(r.key); if (r.key !== 'floor') setOpen(null); }}
-              >
-                <span style={{ display: 'block', fontSize: 15, fontWeight: room === r.key ? 700 : 400 }}>{r.label}</span>
-                <span style={{ display: 'block', fontSize: 13, color: T.textDim, marginTop: 2 }}>{r.detail}</span>
-              </button>
-            ))}
-          </div>
+          {SECTIONS.map((section) => (
+            <div key={section.name} style={{ marginBottom: 24 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                margin: '0 0 9px 14px',
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: T.gold, opacity: 0.8 }} />
+                <span style={{
+                  fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
+                  color: T.textDim, textTransform: 'uppercase',
+                }}>{section.name}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {section.rooms.map((r) => {
+                  const active = room === r.key;
+                  return (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => { setRoom(r.key); if (r.key !== 'floor') setOpen(null); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        background: active ? T.raisedGrad : 'transparent',
+                        border: `1px solid ${active ? T.line : 'transparent'}`,
+                        borderLeft: `3px solid ${active ? T.gold : 'transparent'}`,
+                        borderRadius: 11, padding: '10px 13px', cursor: 'pointer',
+                        fontFamily: 'inherit', color: active ? T.text : T.textMuted,
+                        minHeight: 46,
+                        boxShadow: active ? T.lift1 : 'none',
+                      }}
+                    >
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: active ? 700 : 400 }}>{r.label}</span>
+                      <span style={{ display: 'block', fontSize: 13, color: T.textDim, marginTop: 2 }}>{r.detail}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
-          <div style={{ marginTop: 26, paddingLeft: 14, fontSize: 13, color: T.textDim, lineHeight: 1.7 }}>
-            <div>{cast.length} on the books</div>
-            <div>{outfits.length} outfits</div>
-            <div>{sets.length} sets</div>
-            <div>{shoots.length} shoots</div>
+          <div style={{
+            marginTop: 8, padding: '14px 16px', borderRadius: 12,
+            background: T.surfaceGrad, border: `1px solid ${T.lineSoft}`,
+            fontSize: 13, color: T.textDim, lineHeight: 1.8,
+          }}>
+            <Count n={cast.length} of="on the books" />
+            <Count n={outfits.length} of="outfits" />
+            <Count n={sets.length} of="sets" />
+            <Count n={shoots.length} of="shoots" />
+            <Count n={assets.length} of="pictures" />
           </div>
         </nav>
 
-        <main style={{ flex: '999 1 620px', minWidth: 0 }}>
+        <main style={{ flex: '999 1 640px', minWidth: 0 }}>
           <Says text={says} />
           {loading ? (
             <p style={{ fontSize: 15, color: T.textMuted }}>Opening the studio.</p>
@@ -172,8 +209,14 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
             <SetsRoom lib={lib} />
           ) : room === 'photoset' ? (
             <PhotosetRoom lib={lib} />
+          ) : room === 'stills' ? (
+            <StillsRoom lib={lib} />
           ) : room === 'courses' ? (
             <CoursesRoom />
+          ) : room === 'girlfriend' ? (
+            <GirlfriendRoom lib={lib} />
+          ) : room === 'social' ? (
+            <SocialRoom lib={lib} />
           ) : openShoot ? (
             <ShootRoom lib={lib} shoot={openShoot} onClose={() => setOpen(null)} />
           ) : (
@@ -182,5 +225,60 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
         </main>
       </div>
     </div>
+  );
+}
+
+function Count({ n, of }: { n: number; of: string }) {
+  return (
+    <div>
+      <span style={{ color: T.textMuted, fontWeight: 700 }}>{n}</span> {of}
+    </div>
+  );
+}
+
+/**
+ * The masthead.
+ *
+ * Gold on a shield is the portal's identity and it is a SEPARATE role from
+ * the gold that marks the one action on a screen - which is why there is a
+ * gold wordmark up here and a gold button down there and they do not fight.
+ */
+function Masthead({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <header style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      flexWrap: 'wrap', gap: 14,
+      padding: '26px 0 24px', marginBottom: 28,
+      borderBottom: `1px solid ${T.lineSoft}`,
+    }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 13 }}>
+        <span style={{
+          width: 34, height: 38, flexShrink: 0,
+          background: GOLD_FILL,
+          /* A shield, drawn rather than fetched: one less file, and it
+           * cannot go missing behind a login. */
+          clipPath: 'polygon(50% 0%, 100% 18%, 100% 62%, 50% 100%, 0% 62%, 0% 18%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: T.onGold, fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
+          boxShadow: `0 8px 24px -10px ${T.gold}`,
+        }}>S</span>
+        <span>
+          <span style={{
+            display: 'block', fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1,
+          }}>
+            The{' '}
+            <span style={{
+              background: GOLD_FILL, WebkitBackgroundClip: 'text',
+              backgroundClip: 'text', color: 'transparent',
+            }}>Studio</span>
+          </span>
+          <span style={{
+            display: 'block', fontSize: 13, letterSpacing: '0.18em',
+            color: T.textDim, textTransform: 'uppercase', marginTop: 3,
+          }}>Private</span>
+        </span>
+      </span>
+      <Btn kind="quiet" onClick={onSignOut}>Sign out</Btn>
+    </header>
   );
 }

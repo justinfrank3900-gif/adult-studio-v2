@@ -16,10 +16,10 @@ export type Identity = {
   identity_lock_prompt: string | null;
   is_default: boolean;
   retired_at: string | null;
-  /** The SpicyAPI CDN url of the picture that MADE this performer. Every
-   *  later still is an edit of this one, which is the only thing that keeps
-   *  a face the same from shot to shot. Kept in meta on the asset row. */
-  seed_url?: string | null;
+  /** The provider's own id for her, once she has been registered. Passed
+   *  on every picture and every clip, which is a stronger hold than the
+   *  edit chain and the only one video understands. */
+  provider_character_id: string | null;
 };
 
 /** adult_voices: how one of them sounds. */

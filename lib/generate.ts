@@ -25,6 +25,10 @@ export async function make(body: {
   prompt: string;
   identity_id?: string | null;
   seed_url?: string | null;
+  /** Her chr_ id, when she has one. */
+  character?: string | null;
+  /** A photograph from outside, as a public url or a data: url. */
+  reference_image?: string | null;
   label?: string;
   aspect?: '9:16' | '16:9';
   duration?: number;
@@ -45,4 +49,17 @@ export async function make(body: {
     );
   }
   return said as unknown as Made;
+}
+
+/** Register her with the provider from her own stills. */
+export async function registerCharacter(name: string, spicyUrls: string[]): Promise<string> {
+  const jwt = await token();
+  const res = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({ what: 'character', name, spicy_urls: spicyUrls }),
+  });
+  const said = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!res.ok) throw new Error((said?.error as string) || `She could not be registered (${res.status}).`);
+  return String(said?.character || '');
 }
