@@ -25,14 +25,16 @@ import WardrobeRoom from './WardrobeRoom';
 import SetsRoom from './SetsRoom';
 import ShootsRoom from './ShootsRoom';
 import ShootRoom from './ShootRoom';
+import PhotosetRoom from './PhotosetRoom';
 
-type Room = 'floor' | 'cast' | 'wardrobe' | 'sets';
+type Room = 'floor' | 'cast' | 'wardrobe' | 'sets' | 'photoset';
 
 const ROOMS: { key: Room; label: string; detail: string }[] = [
   { key: 'floor', label: 'The floor', detail: 'every shoot' },
   { key: 'cast', label: 'Cast', detail: 'who is on camera' },
   { key: 'wardrobe', label: 'Wardrobe', detail: 'what they wear' },
   { key: 'sets', label: 'Sets', detail: 'where you shoot' },
+  { key: 'photoset', label: 'Shoot a set', detail: 'a roll of stills' },
 ];
 
 export type Library = {
@@ -164,6 +166,8 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
             <WardrobeRoom lib={lib} />
           ) : room === 'sets' ? (
             <SetsRoom lib={lib} />
+          ) : room === 'photoset' ? (
+            <PhotosetRoom lib={lib} />
           ) : openShoot ? (
             <ShootRoom lib={lib} shoot={openShoot} onClose={() => setOpen(null)} />
           ) : (

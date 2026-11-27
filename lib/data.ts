@@ -237,6 +237,9 @@ export async function keepStill(opts: {
   wardrobe?: string | null;
   angle?: string | null;
   masterRef?: boolean;
+  /** Anything else worth keeping beside the still: which photoset run it
+   *  belongs to, which pose it was. */
+  extra?: Record<string, unknown>;
 }): Promise<Asset> {
   const { data, error } = await supa()
     .from('adult_assets')
@@ -250,7 +253,7 @@ export async function keepStill(opts: {
       wardrobe: opts.wardrobe ?? null,
       angle: opts.angle ?? null,
       is_master_ref: Boolean(opts.masterRef),
-      meta: { spicy_url: opts.spicyUrl },
+      meta: { spicy_url: opts.spicyUrl, ...(opts.extra || {}) },
     })
     .select('id,identity_id,kind,label,public_url,storage_path,is_master_ref,wardrobe,angle,meta,created_at')
     .single();
