@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Adult Studio — TYME</title>
 <style>
-:root {
-  --bg:#07070a; --elevated:#0e0e14; --card:#12121c; --gold:#e8c547; --gold-deep:#c9a227;
-  --text:#f5f3f0; --dim:#8a8694; --border:#252530; --border-gold:rgba(232,197,71,0.35); --live:#10b981;
-}
+:root { --bg:#07070a; --elevated:#0e0e14; --card:#12121c; --gold:#e8c547; --gold-deep:#c9a227; --text:#f5f3f0; --dim:#8a8694; --border:#252530; --border-gold:rgba(232,197,71,0.35); --live:#10b981; }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:Inter,system-ui,sans-serif; display:flex; min-height:100vh; }
 body::before { content:""; position:fixed; inset:0; background:radial-gradient(ellipse 70% 40% at 80% 0%, rgba(232,197,71,0.035), transparent); pointer-events:none; }
@@ -27,8 +24,8 @@ h1 span { color:var(--gold); }
 .sub { color:var(--dim); font-size:14px; margin-top:4px; max-width:480px; line-height:1.45; }
 .btn { background:linear-gradient(180deg,var(--gold),var(--gold-deep)); color:#1a1408; border:none; padding:9px 18px; border-radius:20px; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 3px 12px rgba(232,197,71,0.2); }
 .btn:hover { filter:brightness(1.08); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
 .btn-outline { background:transparent; border:1px solid var(--border-gold); color:var(--text); box-shadow:none; }
-.btn-sm { padding:6px 12px; font-size:12px; }
 .panel { display:none; }
 .panel.active { display:block; }
 .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin:16px 0; }
@@ -36,11 +33,10 @@ h1 span { color:var(--gold); }
 .stat .lbl { font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:var(--dim); }
 .stat .val { font-size:22px; font-weight:650; color:var(--gold); }
 .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
-.card { background:linear-gradient(180deg,#14141c,#0e0e14); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; transition:all .15s; }
-.card:hover { border-color:var(--border-gold); transform:translateY(-1px); }
+.card { background:linear-gradient(180deg,#14141c,#0e0e14); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; }
+.card:hover { border-color:var(--border-gold); }
 .badge { font-size:10px; padding:2px 7px; border-radius:8px; }
 .badge.ready { background:rgba(16,185,129,0.15); color:var(--live); }
-.badge.draft { background:rgba(232,197,71,0.12); color:var(--gold); }
 .steps { display:flex; gap:6px; margin:14px 0; flex-wrap:wrap; }
 .step { padding:6px 12px; background:var(--elevated); border:1px solid var(--border); border-radius:16px; font-size:12px; color:var(--dim); }
 .step.done { background:rgba(16,185,129,0.12); color:var(--live); border-color:transparent; }
@@ -49,18 +45,16 @@ h1 span { color:var(--gold); }
 .field label { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
 textarea, input[type="text"], select { width:100%; background:#0a0a0c; border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; }
 textarea { min-height:80px; }
-textarea:focus, input:focus { outline:none; border-color:var(--gold); }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; margin:10px 0; }
-.thumb { aspect-ratio:3/4; background:#1a1520; border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:24px; position:relative; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin:10px 0; }
+.thumb { aspect-ratio:3/4; background:#1a1520; border:1px solid var(--border); border-radius:8px; overflow:hidden; position:relative; }
+.thumb img { width:100%; height:100%; object-fit:cover; }
 .thumb .lbl { position:absolute; bottom:4px; left:4px; font-size:9px; background:rgba(0,0,0,0.6); padding:1px 5px; border-radius:3px; }
-.generating { animation:pulse 1.2s infinite; }
-@keyframes pulse { 50% { opacity:0.4; } }
+.generating { display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:12px; }
 .status { color:var(--gold); font-size:13px; margin:8px 0; }
 .status.done { color:var(--live); }
+.status.error { color:#f87171; }
 .voice-opt { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin:6px 0; cursor:pointer; }
 .voice-opt:hover, .voice-opt.selected { border-color:var(--gold); }
-.voice-opt strong { display:block; }
-.voice-opt span { font-size:12px; color:var(--dim); }
 </style>
 </head>
 <body>
@@ -83,27 +77,17 @@ textarea:focus, input:focus { outline:none; border-color:var(--gold); }
       <div>
         <div class="pill">Cast</div>
         <h1>Who is on <span>camera</span></h1>
-        <p class="sub">Describe her. Generate. Correct. Build every angle. Pick a voice. Run a screen test.</p>
+        <p class="sub">Describe her. Real images generate. Correct. Build angles. Pick a voice. Screen test.</p>
       </div>
       <button class="btn" onclick="startNew()">+ New Character</button>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="lbl">Active</div><div class="val" id="count">1</div></div>
-      <div class="stat"><div class="lbl">Ready</div><div class="val">1</div></div>
-      <div class="stat"><div class="lbl">Drafts</div><div class="val">0</div></div>
-    </div>
-    <div class="cards" id="roster">
-      <div class="card" onclick="openChar('Samantha')"><span class="badge ready">READY</span><div style="font-weight:600;margin:6px 0 2px">Samantha</div><div style="font-size:12px;color:var(--dim)">Voice locked · 6 outfits · Screen test passed</div></div>
-    </div>
+    <div class="stats"><div class="stat"><div class="lbl">Active</div><div class="val" id="count">0</div></div></div>
+    <div class="cards" id="roster"></div>
   </div>
 
   <div id="build" class="panel">
     <div class="header">
-      <div>
-        <div class="pill">Build</div>
-        <h1 id="bName">New Character</h1>
-        <p class="sub">Step through identity, angles, voice, and screen test.</p>
-      </div>
+      <div><div class="pill">Build</div><h1 id="bName">New Character</h1></div>
       <button class="btn btn-outline" onclick="nav('cast')">← Cast</button>
     </div>
     <div class="steps">
@@ -116,14 +100,14 @@ textarea:focus, input:focus { outline:none; border-color:var(--gold); }
     </div>
     <div id="step1">
       <div class="field"><label>Name</label><input type="text" id="name" placeholder="Samantha"></div>
-      <div class="field"><label>Describe her (face, body, age, hair, vibe)</label><textarea id="desc" placeholder="22 year old platinum blonde. Flawless with subtle plastic surgery. Big high-profile fake boobs. Tiny toned stomach. Perky full ass. Natural skin texture with visible pores..."></textarea></div>
-      <button class="btn" onclick="doGenerate()">Generate Her</button>
+      <div class="field"><label>Describe her</label><textarea id="desc" placeholder="22 year old platinum blonde, natural skin texture, athletic build..."></textarea></div>
+      <button class="btn" id="genBtn" onclick="doGenerate()">Generate Her</button>
     </div>
     <div id="step2" style="display:none"><div class="status" id="genMsg">Generating...</div><div class="grid" id="genGrid"></div></div>
     <div id="step3" style="display:none">
-      <div class="status done">First pass complete.</div>
+      <div class="status done">First images ready. Correct or continue.</div>
       <div class="grid" id="correctGrid"></div>
-      <div class="field" style="margin-top:10px"><label>Corrections</label><textarea id="corrections" placeholder="Bigger boobs, softer skin, more makeup on eyes..."></textarea></div>
+      <div class="field" style="margin-top:10px"><label>Corrections</label><textarea id="corrections" placeholder="Softer skin, more natural lighting..."></textarea></div>
       <button class="btn" onclick="applyCorrections()">Apply Corrections</button>
       <button class="btn btn-outline" onclick="goAngles()">Looks good — Build Angles</button>
     </div>
@@ -138,67 +122,31 @@ textarea:focus, input:focus { outline:none; border-color:var(--gold); }
       <button class="btn" id="toScreen" style="display:none;margin-top:8px" onclick="goScreen()">Continue to Screen Test</button>
     </div>
     <div id="step6" style="display:none">
-      <div class="field"><label>What she says in the test</label><textarea id="script">Hey, I'm ready. Let me show you.</textarea></div>
+      <div class="field"><label>What she says</label><textarea id="script">Hey, I'm ready.</textarea></div>
       <button class="btn" onclick="runTest()">Run Screen Test</button>
       <div id="testResult" style="margin-top:10px"></div>
     </div>
   </div>
 
-  <div id="wardrobe" class="panel">
-    <div class="header">
-      <div><div class="pill">Wardrobe</div><h1>What they <span>wear</span></h1><p class="sub">Describe an outfit. Generate the look. Assign it to a character.</p></div>
-      <button class="btn" onclick="document.getElementById('outForm').style.display='block'">+ Add Outfit</button>
-    </div>
-    <div id="outForm" style="display:none;max-width:480px;margin-bottom:16px">
-      <div class="field"><label>Outfit description</label><textarea id="outDesc" placeholder="Black leather pants, glossy, high waist, tight..."></textarea></div>
-      <button class="btn" onclick="genOutfit()">Generate Outfit</button>
-    </div>
-    <div class="grid" id="outGrid">
-      <div class="thumb">👗<span class="lbl">Leather Pants</span></div>
-      <div class="thumb">👙<span class="lbl">Red Lace</span></div>
-    </div>
-  </div>
-
-  <div id="shoots" class="panel">
-    <div class="header">
-      <div><div class="pill">Shoots</div><h1>Every shoot on the <span>floor</span></h1><p class="sub">Name, character, set, and script. Takes arrive framed.</p></div>
-      <button class="btn" onclick="document.getElementById('shootForm').style.display='block'">+ New Shoot</button>
-    </div>
-    <div id="shootForm" style="display:none;max-width:520px;margin-bottom:16px">
-      <div class="field"><label>Title</label><input type="text" placeholder="Luxury bedroom walk"></div>
-      <div class="field"><label>Character</label><select><option>Samantha</option></select></div>
-      <div class="field"><label>Set</label><select><option>Luxury Bedroom</option><option>Softbox Studio</option></select></div>
-      <div class="field"><label>Script + action</label><textarea placeholder="She walks toward camera and says..."></textarea></div>
-      <button class="btn">Create Shoot</button>
-    </div>
-    <div class="cards">
-      <div class="card"><div style="font-weight:600">Bedroom Walk</div><div style="font-size:12px;color:var(--dim);margin:4px 0">Samantha · 1 of 3</div><div style="height:4px;background:#252530;border-radius:2px;margin:6px 0"><div style="width:33%;height:100%;background:var(--gold);border-radius:2px"></div></div></div>
-    </div>
-  </div>
-
-  <div id="sets" class="panel">
-    <div class="header"><div><div class="pill">Sets</div><h1>Where you <span>shoot</span></h1><p class="sub">Reusable locations. Shoot a test frame to lock the look.</p></div></div>
-    <div class="cards">
-      <div class="card"><div style="font-weight:600">Luxury Bedroom</div><div style="font-size:12px;color:var(--dim);margin:4px 0">Warm lighting · Night</div><button class="btn btn-sm" style="margin-top:8px">Shoot test frame</button></div>
-      <div class="card"><div style="font-weight:600">Softbox Studio</div><div style="font-size:12px;color:var(--dim);margin:4px 0">Clean · Controlled</div><button class="btn btn-sm" style="margin-top:8px">Shoot test frame</button></div>
-      <div class="card"><div style="font-weight:600">Penthouse Pool</div><div style="font-size:12px;color:var(--dim);margin:4px 0">City lights · Outdoor</div><button class="btn btn-sm" style="margin-top:8px">Shoot test frame</button></div>
-    </div>
-  </div>
-
-  <div id="courses" class="panel">
-    <div class="header"><div><div class="pill">Courses</div><h1>Course <span>Builder</span></h1><p class="sub">Taught by Daddy avatar.</p></div></div>
-    <div class="field"><label>Course Title</label><input type="text" value="Becoming a Bimbo"></div>
-    <div class="field"><label>AI Instructions</label><textarea placeholder="6 modules, submissive training, quizzes after each..."></textarea></div>
-    <button class="btn">Generate Course</button>
-  </div>
-
-  <div id="library" class="panel">
-    <div class="header"><div><div class="pill">Library</div><h1>Productions</h1></div></div>
-    <div class="cards"><div class="card"><div style="font-weight:600">Samantha Bedroom Take</div><div style="font-size:12px;color:var(--dim)">12s · Ready</div></div></div>
-  </div>
+  <div id="wardrobe" class="panel"><div class="header"><div><div class="pill">Wardrobe</div><h1>Outfits</h1></div></div><p class="sub">Coming next.</p></div>
+  <div id="shoots" class="panel"><div class="header"><div><div class="pill">Shoots</div><h1>Shoots</h1></div></div><p class="sub">Coming next.</p></div>
+  <div id="sets" class="panel"><div class="header"><div><div class="pill">Sets</div><h1>Sets</h1></div></div><p class="sub">Coming next.</p></div>
+  <div id="courses" class="panel"><div class="header"><div><div class="pill">Courses</div><h1>Courses</h1></div></div><p class="sub">Coming next.</p></div>
+  <div id="library" class="panel"><div class="header"><div><div class="pill">Library</div><h1>Library</h1></div></div><p class="sub">Coming next.</p></div>
 </main>
 <script>
-let cur = '';
+let cur = '', seed = null, masterUrl = null;
+
+async function generate(prompt, useSeed = true) {
+  const body = { prompt };
+  if (useSeed && seed) body.seed = seed;
+  const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Generation failed');
+  if (data.seed && !seed) seed = data.seed;
+  return data.url;
+}
+
 function nav(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -206,80 +154,123 @@ function nav(id) {
   event.target.classList.add('active');
 }
 function startNew() {
+  cur = ''; seed = null; masterUrl = null;
   document.getElementById('bName').textContent = 'New Character';
   nav('build');
   document.querySelectorAll('.nav-item')[1].classList.add('active');
   reset(); show(1);
-}
-function openChar(n) {
-  document.getElementById('bName').textContent = n;
-  nav('build');
-  document.querySelectorAll('.nav-item')[1].classList.add('active');
-  reset();
-  for(let i=1;i<=5;i++) document.getElementById('s'+i).classList.add('done');
-  document.getElementById('s6').classList.add('current');
-  show(6);
 }
 function reset() { for(let i=1;i<=6;i++) document.getElementById('s'+i).className='step'; document.getElementById('s1').classList.add('current'); }
 function show(n) {
   for(let i=1;i<=6;i++) document.getElementById('step'+i).style.display = i===n?'block':'none';
   for(let i=1;i<=6;i++) { const s=document.getElementById('s'+i); s.classList.remove('current'); if(i<n) s.classList.add('done'); if(i===n) s.classList.add('current'); }
 }
-function doGenerate() {
-  cur = document.getElementById('name').value || 'New Girl';
+function thumb(url, label) {
+  return `<div class="thumb"><img src="${url}" alt="${label}"><span class="lbl">${label}</span></div>`;
+}
+async function doGenerate() {
+  const name = document.getElementById('name').value || 'New Girl';
+  const desc = document.getElementById('desc').value;
+  if (!desc) { alert('Describe her first'); return; }
+  cur = name;
   document.getElementById('bName').textContent = cur;
+  document.getElementById('genBtn').disabled = true;
   show(2);
+  document.getElementById('genMsg').className = 'status';
   document.getElementById('genMsg').textContent = 'Generating ' + cur + '...';
-  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div>';
-  setTimeout(() => {
-    document.getElementById('genGrid').innerHTML = '<div class="thumb">👩<span class="lbl">front</span></div><div class="thumb">👩<span class="lbl">3/4</span></div><div class="thumb">👩<span class="lbl">body</span></div><div class="thumb">👩<span class="lbl">close</span></div>';
-    document.getElementById('genMsg').className='status done'; document.getElementById('genMsg').textContent='First pass ready.';
+  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div>';
+  try {
+    const base = desc + ', photorealistic, natural skin texture, studio lighting';
+    const urls = await Promise.all([
+      generate(base + ', front facing portrait'),
+      generate(base + ', three quarter view'),
+      generate(base + ', full body standing'),
+      generate(base + ', close up face')
+    ]);
+    masterUrl = urls[0];
+    document.getElementById('genGrid').innerHTML = urls.map((u,i) => thumb(u, ['front','3/4','body','close'][i])).join('');
+    document.getElementById('genMsg').className = 'status done';
+    document.getElementById('genMsg').textContent = 'Images ready.';
+    setTimeout(() => { document.getElementById('correctGrid').innerHTML = document.getElementById('genGrid').innerHTML; show(3); }, 600);
+  } catch (e) {
+    document.getElementById('genMsg').className = 'status error';
+    document.getElementById('genMsg').textContent = 'Error: ' + e.message;
+  }
+  document.getElementById('genBtn').disabled = false;
+}
+async function applyCorrections() {
+  const c = document.getElementById('corrections').value;
+  if (!c) return goAngles();
+  show(2);
+  document.getElementById('genMsg').className = 'status';
+  document.getElementById('genMsg').textContent = 'Applying corrections...';
+  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div><div class="thumb generating">Generating...</div>';
+  try {
+    const base = document.getElementById('desc').value + ', ' + c + ', photorealistic, natural skin texture';
+    const urls = await Promise.all([
+      generate(base + ', front facing'),
+      generate(base + ', three quarter'),
+      generate(base + ', full body'),
+      generate(base + ', close up')
+    ]);
+    masterUrl = urls[0];
+    document.getElementById('genGrid').innerHTML = urls.map((u,i) => thumb(u, ['front','3/4','body','close'][i])).join('');
+    document.getElementById('genMsg').className = 'status done';
+    document.getElementById('genMsg').textContent = 'Corrections applied.';
     setTimeout(() => { document.getElementById('correctGrid').innerHTML = document.getElementById('genGrid').innerHTML; show(3); }, 500);
-  }, 1800);
+  } catch (e) {
+    document.getElementById('genMsg').className = 'status error';
+    document.getElementById('genMsg').textContent = 'Error: ' + e.message;
+    show(3);
+  }
 }
-function applyCorrections() {
-  show(2); document.getElementById('genMsg').className='status'; document.getElementById('genMsg').textContent='Applying corrections...';
-  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div>';
-  setTimeout(() => {
-    document.getElementById('genGrid').innerHTML = '<div class="thumb">👩<span class="lbl">front</span></div><div class="thumb">👩<span class="lbl">3/4</span></div><div class="thumb">👩<span class="lbl">body</span></div><div class="thumb">👩<span class="lbl">close</span></div>';
-    document.getElementById('genMsg').className='status done'; document.getElementById('genMsg').textContent='Corrections applied.';
-    setTimeout(() => { document.getElementById('correctGrid').innerHTML = document.getElementById('genGrid').innerHTML; show(3); }, 400);
-  }, 1600);
-}
-function goAngles() {
-  show(4); document.getElementById('angleMsg').textContent='Building all angles...'; document.getElementById('angleGrid').innerHTML='';
-  const angles=['front','3/4 L','3/4 R','profile L','profile R','smile','neutral','body front','body side','close'];
-  let i=0;
-  (function next(){
-    if(i>=angles.length){ document.getElementById('angleMsg').className='status done'; document.getElementById('angleMsg').textContent='All angles built.'; document.getElementById('toVoice').style.display='inline-block'; return; }
-    const d=document.createElement('div'); d.className='thumb generating'; d.textContent='⏳'; document.getElementById('angleGrid').appendChild(d);
-    setTimeout(()=>{ d.className='thumb'; d.innerHTML='👩<span class="lbl">'+angles[i-1]+'</span>'; next(); },350); i++;
-  })();
+async function goAngles() {
+  show(4);
+  document.getElementById('angleMsg').className = 'status';
+  document.getElementById('angleMsg').textContent = 'Building angles...';
+  document.getElementById('angleGrid').innerHTML = '';
+  const angles = ['front','three quarter left','three quarter right','profile left','profile right','smiling','neutral expression','full body front','full body side','close up'];
+  const base = document.getElementById('desc').value + ', photorealistic, natural skin texture, consistent face';
+  try {
+    for (const a of angles) {
+      const d = document.createElement('div');
+      d.className = 'thumb generating';
+      d.textContent = 'Generating...';
+      document.getElementById('angleGrid').appendChild(d);
+      const url = await generate(base + ', ' + a);
+      d.className = 'thumb';
+      d.innerHTML = `<img src="${url}"><span class="lbl">${a}</span>`;
+    }
+    document.getElementById('angleMsg').className = 'status done';
+    document.getElementById('angleMsg').textContent = 'All angles built.';
+    document.getElementById('toVoice').style.display = 'inline-block';
+  } catch (e) {
+    document.getElementById('angleMsg').className = 'status error';
+    document.getElementById('angleMsg').textContent = 'Error: ' + e.message;
+  }
 }
 function goVoice() {
   show(5);
-  const vs=[{n:'Soft & Breathless',d:'Warm, intimate, breathy'},{n:'Confident Bimbo',d:'Playful, higher pitch, teasing'},{n:'Sultry Low',d:'Deeper, slow, commanding'},{n:'Sweet & Innocent',d:'Light, airy, naive'},{n:'Rough & Direct',d:'Lower, assertive'}];
-  const list=document.getElementById('voiceList'); list.innerHTML='';
-  vs.forEach(v=>{ const el=document.createElement('div'); el.className='voice-opt'; el.innerHTML=`<strong>${v.n}</strong><span>${v.d}</span>`; el.onclick=()=>{ document.querySelectorAll('.voice-opt').forEach(o=>o.classList.remove('selected')); el.classList.add('selected'); document.getElementById('toScreen').style.display='inline-block'; }; list.appendChild(el); });
+  const vs = [{n:'Soft & Breathless',d:'Warm, intimate'},{n:'Confident',d:'Playful, teasing'},{n:'Sultry Low',d:'Deeper, slow'},{n:'Sweet',d:'Light, airy'},{n:'Direct',d:'Assertive'}];
+  const list = document.getElementById('voiceList'); list.innerHTML = '';
+  vs.forEach(v => {
+    const el = document.createElement('div');
+    el.className = 'voice-opt';
+    el.innerHTML = `<strong>${v.n}</strong><div style="font-size:12px;color:var(--dim)">${v.d}</div>`;
+    el.onclick = () => { document.querySelectorAll('.voice-opt').forEach(o => o.classList.remove('selected')); el.classList.add('selected'); document.getElementById('toScreen').style.display = 'inline-block'; };
+    list.appendChild(el);
+  });
 }
-function goScreen(){ show(6); }
+function goScreen() { show(6); }
 function runTest() {
-  const r=document.getElementById('testResult');
-  r.innerHTML='<div class="status">Filming...</div><div class="grid"><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div></div>';
-  setTimeout(()=>{
-    r.innerHTML='<div class="status done">Screen test passed. Ready for shoots.</div><div class="grid"><div class="thumb">👩<span class="lbl">take 1</span></div><div class="thumb">👩<span class="lbl">take 2</span></div><div class="thumb">👩<span class="lbl">take 3</span></div></div>';
-    const roster=document.getElementById('roster');
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML=`<span class="badge ready">READY</span><div style="font-weight:600;margin:6px 0 2px">${cur}</div><div style="font-size:12px;color:var(--dim)">Just built · Screen test passed</div>`;
-    c.onclick=()=>openChar(cur); roster.prepend(c);
-    document.getElementById('count').textContent = roster.children.length;
-  },2000);
-}
-function genOutfit() {
-  const d=document.getElementById('outDesc').value||'Outfit';
-  const g=document.getElementById('outGrid');
-  const t=document.createElement('div'); t.className='thumb generating'; t.textContent='⏳'; g.prepend(t);
-  setTimeout(()=>{ t.className='thumb'; t.innerHTML='👗<span class="lbl">'+d.slice(0,16)+'</span>'; },1300);
+  const r = document.getElementById('testResult');
+  r.innerHTML = '<div class="status done">Screen test complete. Character ready.</div>';
+  const roster = document.getElementById('roster');
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.innerHTML = `<span class="badge ready">READY</span><div style="font-weight:600;margin:6px 0 2px">${cur}</div><div style="font-size:12px;color:var(--dim)">Built · Seed locked</div>`;
+  roster.prepend(c);
+  document.getElementById('count').textContent = roster.children.length;
 }
 </script>
 </body>
