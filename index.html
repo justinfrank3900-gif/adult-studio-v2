@@ -5,241 +5,291 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Adult Studio — TYME</title>
 <style>
-:root {
-  --bg: #07070a; --bg-card: #12121c; --gold: #e8c547; --gold-deep: #c9a227;
-  --text: #f5f3f0; --text-dim: #8a8694; --border: #252530; --border-gold: rgba(232,197,71,0.4);
-  --live: #10b981;
-}
+:root { --bg:#07070a; --card:#12121c; --gold:#e8c547; --gold-deep:#c9a227; --text:#f5f3f0; --dim:#8a8694; --border:#252530; --live:#10b981; }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:Inter,system-ui,sans-serif; display:flex; min-height:100vh; }
-.sidebar { width:200px; background:#0a0a0e; border-right:1px solid var(--border); padding:16px 0; flex-shrink:0; }
-.logo { padding:0 14px 20px; font-size:12px; font-weight:700; color:var(--gold); letter-spacing:1px; }
-.nav-item { padding:10px 14px; font-size:13px; color:var(--text-dim); cursor:pointer; }
+.sidebar { width:190px; background:#0a0a0e; border-right:1px solid var(--border); padding:16px 0; flex-shrink:0; }
+.logo { padding:0 14px 18px; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; }
+.nav-item { padding:10px 14px; font-size:13px; color:var(--dim); cursor:pointer; }
 .nav-item:hover, .nav-item.active { background:rgba(232,197,71,0.1); color:var(--gold); }
-.main { flex:1; padding:24px 28px; overflow-y:auto; max-height:100vh; }
-.pill { display:inline-block; background:rgba(232,197,71,0.1); border:1px solid var(--border-gold); color:var(--gold); font-size:10px; letter-spacing:0.8px; text-transform:uppercase; padding:3px 10px; border-radius:12px; margin-bottom:8px; }
-h1 { font-size:28px; font-weight:650; }
-.sub { color:var(--text-dim); font-size:14px; margin:6px 0 16px; max-width:500px; }
-.btn { background:linear-gradient(180deg,var(--gold),var(--gold-deep)); color:#1a1408; border:none; padding:10px 18px; border-radius:20px; font-weight:600; cursor:pointer; font-size:13px; }
+.main { flex:1; padding:22px 26px; overflow-y:auto; max-height:100vh; }
+.pill { display:inline-block; background:rgba(232,197,71,0.1); border:1px solid rgba(232,197,71,0.35); color:var(--gold); font-size:10px; letter-spacing:0.7px; text-transform:uppercase; padding:3px 10px; border-radius:12px; margin-bottom:8px; }
+h1 { font-size:26px; font-weight:650; }
+.sub { color:var(--dim); font-size:13px; margin:4px 0 14px; }
+.btn { background:linear-gradient(180deg,var(--gold),var(--gold-deep)); color:#1a1408; border:none; padding:9px 16px; border-radius:18px; font-weight:600; cursor:pointer; font-size:13px; }
 .btn:hover { filter:brightness(1.08); }
-.btn-outline { background:transparent; border:1px solid var(--border-gold); color:var(--text); }
-.btn-sm { padding:6px 12px; font-size:12px; }
+.btn-outline { background:transparent; border:1px solid rgba(232,197,71,0.4); color:var(--text); }
+.btn-sm { padding:5px 12px; font-size:12px; }
 .panel { display:none; }
 .panel.active { display:block; }
-.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
-.card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; cursor:pointer; transition:all .15s; }
-.card:hover { border-color:var(--border-gold); }
-.card-img { height:140px; background:#1a1520; display:flex; align-items:center; justify-content:center; font-size:32px; }
-.card-body { padding:12px; }
-.card-title { font-weight:600; margin-bottom:4px; }
-.card-meta { font-size:12px; color:var(--text-dim); }
-.badge { font-size:10px; padding:2px 7px; border-radius:8px; }
+.steps { display:flex; gap:6px; margin:12px 0 16px; flex-wrap:wrap; }
+.step { padding:6px 12px; background:#12121c; border:1px solid var(--border); border-radius:14px; font-size:12px; color:var(--dim); }
+.step.done { background:rgba(16,185,129,0.15); color:var(--live); border-color:transparent; }
+.step.current { background:var(--gold); color:#1a1408; border-color:var(--gold); }
+.field { margin-bottom:10px; }
+.field label { display:block; font-size:11px; color:var(--dim); margin-bottom:4px; }
+textarea, input[type="text"] { width:100%; background:#0a0a0c; border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:13px; }
+textarea { min-height:70px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin:10px 0; }
+.thumb { aspect-ratio:3/4; background:#1a1520; border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:26px; position:relative; }
+.thumb .lbl { position:absolute; bottom:4px; left:4px; font-size:9px; background:rgba(0,0,0,0.65); padding:1px 5px; border-radius:3px; }
+.generating { animation:pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity:0.45; } }
+.status { color:var(--gold); font-size:13px; margin:8px 0; }
+.status.done { color:var(--live); }
+.voice-opt { background:#12121c; border:1px solid var(--border); border-radius:10px; padding:12px; margin:6px 0; cursor:pointer; }
+.voice-opt:hover, .voice-opt.selected { border-color:var(--gold); }
+.voice-opt strong { display:block; margin-bottom:2px; }
+.voice-opt span { font-size:12px; color:var(--dim); }
+.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; margin-top:14px; }
+.card { background:#12121c; border:1px solid var(--border); border-radius:10px; padding:12px; cursor:pointer; }
+.card:hover { border-color:rgba(232,197,71,0.4); }
+.badge { font-size:9px; padding:2px 6px; border-radius:6px; }
 .badge.ready { background:rgba(16,185,129,0.15); color:var(--live); }
 .badge.draft { background:rgba(232,197,71,0.12); color:var(--gold); }
-.field { margin-bottom:12px; }
-.field label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; }
-textarea, input[type="text"], select { width:100%; background:#0a0a0c; border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; }
-textarea { min-height:80px; }
-.tabs { display:flex; gap:6px; margin:12px 0; flex-wrap:wrap; }
-.tab { padding:7px 12px; background:#12121c; border:1px solid var(--border); border-radius:16px; font-size:12px; cursor:pointer; color:var(--text-dim); }
-.tab.active { background:var(--gold); color:#1a1408; border-color:var(--gold); }
-.preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin:12px 0; }
-.preview { aspect-ratio:3/4; background:#1a1520; border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:28px; position:relative; }
-.preview .label { position:absolute; bottom:6px; left:6px; font-size:10px; background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:4px; }
-.generating { animation:pulse 1.5s infinite; }
-@keyframes pulse { 50% { opacity:0.5; } }
-.outfit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
-.outfit-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.outfit-thumb { height:180px; background:#1a1520; display:flex; align-items:center; justify-content:center; font-size:28px; }
-.outfit-info { padding:10px; font-size:12px; }
 </style>
 </head>
 <body>
 <aside class="sidebar">
   <div class="logo">ADULT STUDIO</div>
-  <div class="nav-item active" onclick="show('cast')">◎ Cast</div>
-  <div class="nav-item" onclick="show('build')">✎ Build</div>
-  <div class="nav-item" onclick="show('wardrobe')">👗 Wardrobe</div>
-  <div class="nav-item" onclick="show('shoots')">🎥 Shoots</div>
-  <div class="nav-item" onclick="show('sets')">🎬 Sets</div>
+  <div class="nav-item active" onclick="nav('cast')">◎ Cast</div>
+  <div class="nav-item" onclick="nav('build')">✎ Build</div>
+  <div class="nav-item" onclick="nav('wardrobe')">👗 Wardrobe</div>
+  <div class="nav-item" onclick="nav('shoots')">🎥 Shoots</div>
 </aside>
 <main class="main">
-  <!-- CAST -->
   <div id="cast" class="panel active">
     <div class="pill">Cast</div>
     <h1>Build a pornstar</h1>
-    <p class="sub">Describe her. The system generates the face, body, and reference photos. Then lock identity and run a screen test.</p>
-    <button class="btn" onclick="showCreate()">+ New Character</button>
-    <div id="createForm" style="display:none;margin-top:20px;max-width:600px">
-      <div class="field"><label>Name</label><input type="text" id="charName" placeholder="Samantha"></div>
-      <div class="field"><label>Describe her (face, body, age, hair, vibe)</label><textarea id="charDesc" placeholder="24 year old blonde, athletic build, natural skin with visible pores, full lips, confident expression, photoreal..."></textarea></div>
-      <div class="field"><label>Voice style</label><textarea id="charVoice" placeholder="Warm, slightly breathy, mid-20s, intimate..."></textarea></div>
-      <button class="btn" onclick="generateCharacter()">Generate Character</button>
-      <button class="btn btn-outline" onclick="document.getElementById('createForm').style.display='none'">Cancel</button>
-    </div>
-    <div id="genResult" style="display:none;margin-top:16px">
-      <p style="color:var(--gold);margin-bottom:8px" id="genStatus">Generating...</p>
-      <div class="preview-grid" id="genPreviews"></div>
-      <button class="btn" onclick="lockAndOpen()">Lock & Open in Build</button>
-    </div>
-    <div class="cards" id="castGrid" style="margin-top:20px">
-      <div class="card" onclick="openBuild('Samantha')"><div class="card-img">👩</div><div class="card-body"><span class="badge ready">READY</span><div class="card-title">Samantha</div><div class="card-meta">Voice locked · 6 outfits · Screen test passed</div></div></div>
+    <p class="sub">Describe her. Generate. Correct. Build angles. Pick a voice. Run screen test.</p>
+    <button class="btn" onclick="startNew()">+ New Character</button>
+    <div class="cards" id="roster">
+      <div class="card" onclick="openExisting('Samantha')"><span class="badge ready">READY</span><div style="font-weight:600;margin-top:4px">Samantha</div><div style="font-size:12px;color:var(--dim)">Voice locked · Screen test passed</div></div>
     </div>
   </div>
 
-  <!-- BUILD -->
   <div id="build" class="panel">
     <div class="pill">Build</div>
-    <h1 id="buildName">Samantha</h1>
-    <p class="sub">Identity, voice, photos, outfits, screen test.</p>
-    <div class="tabs">
-      <div class="tab active" onclick="buildTab('identity')">Identity</div>
-      <div class="tab" onclick="buildTab('voice')">Voice</div>
-      <div class="tab" onclick="buildTab('photos')">Photos</div>
-      <div class="tab" onclick="buildTab('outfits')">Outfits</div>
-      <div class="tab" onclick="buildTab('screen')">Screen Test</div>
+    <h1 id="bName">New Character</h1>
+    <div class="steps" id="steps">
+      <div class="step current" id="s1">1 Describe</div>
+      <div class="step" id="s2">2 Generate</div>
+      <div class="step" id="s3">3 Correct</div>
+      <div class="step" id="s4">4 Angles</div>
+      <div class="step" id="s5">5 Voice</div>
+      <div class="step" id="s6">6 Screen Test</div>
     </div>
-    <div id="bt-identity">
-      <div class="field"><label>Identity Lock</label><textarea id="lockText">Natural skin texture, photoreal, consistent face, not airbrushed</textarea></div>
-      <button class="btn" onclick="alert('Identity locked')">Update Lock</button>
+
+    <!-- STEP 1: Describe -->
+    <div id="step1">
+      <div class="field"><label>Name</label><input type="text" id="name" placeholder="Samantha"></div>
+      <div class="field"><label>Describe her</label><textarea id="desc" placeholder="22 year old platinum blonde bimbo. Flawless with plastic surgeries but not over the top. Big fake high profile boobs. Tiny toned stomach and perky full ass. Natural skin texture..."></textarea></div>
+      <button class="btn" onclick="doGenerate()">Generate Her</button>
     </div>
-    <div id="bt-voice" style="display:none">
-      <div class="field"><label>Voice Prompt</label><textarea>Warm, breathy, mid-20s female</textarea></div>
-      <button class="btn" onclick="alert('Voice audition generated')">Generate Voice</button>
+
+    <!-- STEP 2: Generating -->
+    <div id="step2" style="display:none">
+      <div class="status" id="genMsg">Generating face and body...</div>
+      <div class="grid" id="genGrid"></div>
     </div>
-    <div id="bt-photos" style="display:none">
-      <p style="color:var(--text-dim);margin-bottom:10px">Reference photos. Click to regenerate any angle.</p>
-      <div class="preview-grid" id="photoGrid">
-        <div class="preview">👩<span class="label">front</span></div>
-        <div class="preview">👩<span class="label">3/4</span></div>
-        <div class="preview">👩<span class="label">profile</span></div>
-        <div class="preview">👩<span class="label">smile</span></div>
-      </div>
-      <button class="btn" onclick="regenPhotos()">Regenerate Photos</button>
+
+    <!-- STEP 3: Correct -->
+    <div id="step3" style="display:none">
+      <div class="status done">First pass complete. Make corrections if needed.</div>
+      <div class="grid" id="correctGrid"></div>
+      <div class="field" style="margin-top:10px"><label>Corrections</label><textarea id="corrections" placeholder="Make the boobs bigger, softer skin, more makeup..."></textarea></div>
+      <button class="btn" onclick="applyCorrections()">Apply Corrections</button>
+      <button class="btn btn-outline" onclick="goAngles()">Looks good — Build Angles</button>
     </div>
-    <div id="bt-outfits" style="display:none">
-      <div class="field"><label>Describe an outfit</label><textarea id="outfitDesc" placeholder="Black leather pants, tight, glossy, high waist, no top..."></textarea></div>
-      <button class="btn" onclick="generateOutfit()">Generate Outfit</button>
-      <div class="outfit-grid" id="outfitGrid" style="margin-top:12px">
-        <div class="outfit-card"><div class="outfit-thumb">👗</div><div class="outfit-info"><strong>Black Leather Pants</strong><br><button class="btn btn-sm" style="margin-top:6px">Shoot on her</button></div></div>
-      </div>
+
+    <!-- STEP 4: Angles -->
+    <div id="step4" style="display:none">
+      <div class="status" id="angleMsg">Building all angles...</div>
+      <div class="grid" id="angleGrid"></div>
+      <button class="btn" id="toVoiceBtn" style="display:none;margin-top:8px" onclick="goVoice()">Continue to Voice</button>
     </div>
-    <div id="bt-screen" style="display:none">
-      <div class="field"><label>What she says in the test</label><textarea id="screenScript">Hey, I'm Samantha. Let me show you what I can do.</textarea></div>
-      <button class="btn" onclick="runScreenTest()">Run Screen Test</button>
-      <div id="screenResults" style="margin-top:12px"></div>
+
+    <!-- STEP 5: Voice -->
+    <div id="step5" style="display:none">
+      <div class="status">Pick a voice</div>
+      <div id="voiceList"></div>
+      <button class="btn" id="toScreenBtn" style="display:none;margin-top:8px" onclick="goScreen()">Continue to Screen Test</button>
+    </div>
+
+    <!-- STEP 6: Screen Test -->
+    <div id="step6" style="display:none">
+      <div class="field"><label>What she says</label><textarea id="script">Hey, I'm ready. Let me show you.</textarea></div>
+      <button class="btn" onclick="runTest()">Run Screen Test</button>
+      <div id="testResult" style="margin-top:10px"></div>
     </div>
   </div>
 
-  <!-- WARDROBE -->
   <div id="wardrobe" class="panel">
     <div class="pill">Wardrobe</div>
     <h1>Outfits</h1>
-    <p class="sub">Describe it. Generate the look. Shoot it on a character.</p>
-    <div class="field"><label>Outfit description</label><textarea id="wardDesc" placeholder="Red lace lingerie, sheer, soft lighting..."></textarea></div>
-    <button class="btn" onclick="genWardrobe()">Generate</button>
-    <div class="outfit-grid" id="wardGrid" style="margin-top:12px"></div>
+    <div class="field"><label>Describe an outfit</label><textarea id="outDesc" placeholder="Black leather pants, glossy, tight, high waist..."></textarea></div>
+    <button class="btn" onclick="genOutfit()">Generate Outfit</button>
+    <div class="grid" id="outGrid" style="margin-top:10px"></div>
   </div>
 
-  <!-- SHOOTS -->
   <div id="shoots" class="panel">
     <div class="pill">Shoots</div>
     <h1>Shoots</h1>
-    <button class="btn" onclick="document.getElementById('shootForm').style.display='block'">+ New Shoot</button>
-    <div id="shootForm" style="display:none;margin-top:16px;max-width:500px">
-      <div class="field"><label>Title</label><input type="text" id="shootTitle" placeholder="Bedroom walk-and-talk"></div>
-      <div class="field"><label>Character</label><select><option>Samantha</option></select></div>
-      <div class="field"><label>Set</label><select><option>Luxury Bedroom</option><option>Softbox Studio</option></select></div>
-      <div class="field"><label>Script</label><textarea placeholder="She walks toward camera and says..."></textarea></div>
-      <button class="btn" onclick="alert('Shoot queued')">Create Shoot</button>
-    </div>
-    <div class="cards" style="margin-top:16px">
-      <div class="card"><div class="card-body"><div class="card-title">Bedroom Take</div><div class="card-meta">Samantha · 12s</div></div></div>
-    </div>
-  </div>
-
-  <!-- SETS -->
-  <div id="sets" class="panel">
-    <div class="pill">Sets</div>
-    <h1>Sets</h1>
-    <div class="cards">
-      <div class="card"><div class="card-body"><div class="card-title">Luxury Bedroom</div><div class="card-meta">Warm lighting · Night</div><button class="btn btn-sm" style="margin-top:8px">Shoot test frame</button></div></div>
-      <div class="card"><div class="card-body"><div class="card-title">Softbox Studio</div><div class="card-meta">Clean · Controlled</div><button class="btn btn-sm" style="margin-top:8px">Shoot test frame</button></div></div>
-    </div>
+    <p class="sub">Create a shoot once a character has passed screen test.</p>
+    <button class="btn">+ New Shoot</button>
   </div>
 </main>
 <script>
-function show(id) {
+let currentName = '';
+function nav(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   event.target.classList.add('active');
 }
-function showCreate() { document.getElementById('createForm').style.display = 'block'; }
-function generateCharacter() {
-  const name = document.getElementById('charName').value || 'New Girl';
-  const desc = document.getElementById('charDesc').value;
-  if (!desc) { alert('Describe her first'); return; }
-  document.getElementById('genResult').style.display = 'block';
-  document.getElementById('genStatus').textContent = 'Generating ' + name + '...';
-  const grid = document.getElementById('genPreviews');
-  grid.innerHTML = '<div class="preview generating">⏳</div><div class="preview generating">⏳</div><div class="preview generating">⏳</div><div class="preview generating">⏳</div>';
-  setTimeout(() => {
-    grid.innerHTML = '<div class="preview">👩<span class="label">front</span></div><div class="preview">👩<span class="label">3/4</span></div><div class="preview">👩<span class="label">profile</span></div><div class="preview">👩<span class="label">smile</span></div>';
-    document.getElementById('genStatus').textContent = name + ' generated. Lock to continue.';
-  }, 1800);
-}
-function lockAndOpen() {
-  const name = document.getElementById('charName').value || 'New Girl';
-  const grid = document.getElementById('castGrid');
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = `<div class="card-img">👩</div><div class="card-body"><span class="badge draft">NEW</span><div class="card-title">${name}</div><div class="card-meta">Just generated</div></div>`;
-  card.onclick = () => openBuild(name);
-  grid.prepend(card);
-  document.getElementById('createForm').style.display = 'none';
-  document.getElementById('genResult').style.display = 'none';
-  openBuild(name);
-}
-function openBuild(name) {
-  document.getElementById('buildName').textContent = name;
-  show('build');
+function startNew() {
+  document.getElementById('bName').textContent = 'New Character';
+  nav('build');
   document.querySelectorAll('.nav-item')[1].classList.add('active');
+  resetSteps();
+  showStep(1);
 }
-function buildTab(t) {
-  ['identity','voice','photos','outfits','screen'].forEach(x => document.getElementById('bt-'+x).style.display = x===t ? 'block' : 'none');
-  document.querySelectorAll('#build .tab').forEach(tab => tab.classList.remove('active'));
-  event.target.classList.add('active');
+function openExisting(name) {
+  document.getElementById('bName').textContent = name;
+  nav('build');
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+  // jump to screen test for existing
+  resetSteps();
+  document.getElementById('s1').classList.add('done');
+  document.getElementById('s2').classList.add('done');
+  document.getElementById('s3').classList.add('done');
+  document.getElementById('s4').classList.add('done');
+  document.getElementById('s5').classList.add('done');
+  document.getElementById('s6').classList.add('current');
+  showStep(6);
 }
-function regenPhotos() {
-  const g = document.getElementById('photoGrid');
-  g.innerHTML = '<div class="preview generating">⏳</div><div class="preview generating">⏳</div><div class="preview generating">⏳</div><div class="preview generating">⏳</div>';
-  setTimeout(() => { g.innerHTML = '<div class="preview">👩<span class="label">front</span></div><div class="preview">👩<span class="label">3/4</span></div><div class="preview">👩<span class="label">profile</span></div><div class="preview">👩<span class="label">smile</span></div>'; }, 1500);
+function resetSteps() {
+  for (let i=1;i<=6;i++) {
+    const s = document.getElementById('s'+i);
+    s.className = 'step';
+  }
+  document.getElementById('s1').classList.add('current');
 }
-function generateOutfit() {
-  const d = document.getElementById('outfitDesc').value || 'New outfit';
-  const g = document.getElementById('outfitGrid');
-  const c = document.createElement('div');
-  c.className = 'outfit-card';
-  c.innerHTML = `<div class="outfit-thumb generating">⏳</div><div class="outfit-info"><strong>${d.slice(0,30)}</strong><br><button class="btn btn-sm" style="margin-top:6px">Shoot on her</button></div>`;
-  g.prepend(c);
-  setTimeout(() => c.querySelector('.outfit-thumb').innerHTML = '👗', 1200);
+function showStep(n) {
+  for (let i=1;i<=6;i++) document.getElementById('step'+i).style.display = i===n ? 'block' : 'none';
+  for (let i=1;i<=6;i++) {
+    const s = document.getElementById('s'+i);
+    s.classList.remove('current');
+    if (i < n) s.classList.add('done');
+    if (i === n) s.classList.add('current');
+  }
 }
-function runScreenTest() {
-  const r = document.getElementById('screenResults');
-  r.innerHTML = '<p style="color:var(--gold)">Filming screen test...</p><div class="preview-grid"><div class="preview generating">⏳</div><div class="preview generating">⏳</div></div>';
+function doGenerate() {
+  currentName = document.getElementById('name').value || 'New Girl';
+  document.getElementById('bName').textContent = currentName;
+  showStep(2);
+  document.getElementById('genMsg').textContent = 'Generating ' + currentName + '...';
+  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div>';
   setTimeout(() => {
-    r.innerHTML = '<p style="color:var(--live)">Screen test passed</p><div class="preview-grid"><div class="preview">👩<span class="label">take 1</span></div><div class="preview">👩<span class="label">take 2</span></div></div>';
+    document.getElementById('genGrid').innerHTML = '<div class="thumb">👩<span class="lbl">front</span></div><div class="thumb">👩<span class="lbl">3/4</span></div><div class="thumb">👩<span class="lbl">body</span></div><div class="thumb">👩<span class="lbl">close</span></div>';
+    document.getElementById('genMsg').className = 'status done';
+    document.getElementById('genMsg').textContent = 'First pass ready.';
+    setTimeout(() => {
+      document.getElementById('correctGrid').innerHTML = document.getElementById('genGrid').innerHTML;
+      showStep(3);
+    }, 600);
   }, 2000);
 }
-function genWardrobe() {
-  const d = document.getElementById('wardDesc').value || 'Outfit';
-  const g = document.getElementById('wardGrid');
-  const c = document.createElement('div');
-  c.className = 'outfit-card';
-  c.innerHTML = `<div class="outfit-thumb generating">⏳</div><div class="outfit-info"><strong>${d.slice(0,28)}</strong></div>`;
-  g.prepend(c);
-  setTimeout(() => c.querySelector('.outfit-thumb').innerHTML = '👙', 1200);
+function applyCorrections() {
+  const c = document.getElementById('corrections').value;
+  document.getElementById('genMsg').className = 'status';
+  showStep(2);
+  document.getElementById('genMsg').textContent = 'Applying corrections...';
+  document.getElementById('genGrid').innerHTML = '<div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div>';
+  setTimeout(() => {
+    document.getElementById('genGrid').innerHTML = '<div class="thumb">👩<span class="lbl">front</span></div><div class="thumb">👩<span class="lbl">3/4</span></div><div class="thumb">👩<span class="lbl">body</span></div><div class="thumb">👩<span class="lbl">close</span></div>';
+    document.getElementById('genMsg').className = 'status done';
+    document.getElementById('genMsg').textContent = 'Corrections applied.';
+    setTimeout(() => {
+      document.getElementById('correctGrid').innerHTML = document.getElementById('genGrid').innerHTML;
+      showStep(3);
+    }, 500);
+  }, 1800);
+}
+function goAngles() {
+  showStep(4);
+  document.getElementById('angleMsg').textContent = 'Building all angles...';
+  document.getElementById('angleGrid').innerHTML = '';
+  const angles = ['front','3/4 left','3/4 right','profile left','profile right','smile','neutral','body front','body side','close up'];
+  let i = 0;
+  function next() {
+    if (i >= angles.length) {
+      document.getElementById('angleMsg').className = 'status done';
+      document.getElementById('angleMsg').textContent = 'All angles built.';
+      document.getElementById('toVoiceBtn').style.display = 'inline-block';
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'thumb generating';
+    d.textContent = '⏳';
+    document.getElementById('angleGrid').appendChild(d);
+    setTimeout(() => {
+      d.className = 'thumb';
+      d.innerHTML = '👩<span class="lbl">' + angles[i-1] + '</span>';
+      next();
+    }, 400);
+    i++;
+  }
+  next();
+}
+function goVoice() {
+  showStep(5);
+  const voices = [
+    { n:'Soft & Breathless', d:'Warm, intimate, slightly breathy' },
+    { n:'Confident Bimbo', d:'Playful, higher pitch, teasing' },
+    { n:'Sultry Low', d:'Deeper, slow, commanding' },
+    { n:'Sweet & Innocent', d:'Light, airy, naive tone' },
+    { n:'Rough & Direct', d:'Lower, assertive, no-nonsense' }
+  ];
+  const list = document.getElementById('voiceList');
+  list.innerHTML = '';
+  voices.forEach((v, idx) => {
+    const el = document.createElement('div');
+    el.className = 'voice-opt';
+    el.innerHTML = `<strong>${v.n}</strong><span>${v.d}</span>`;
+    el.onclick = () => {
+      document.querySelectorAll('.voice-opt').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('toScreenBtn').style.display = 'inline-block';
+    };
+    list.appendChild(el);
+  });
+}
+function goScreen() {
+  showStep(6);
+}
+function runTest() {
+  const r = document.getElementById('testResult');
+  r.innerHTML = '<div class="status">Filming screen test...</div><div class="grid"><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div><div class="thumb generating">⏳</div></div>';
+  setTimeout(() => {
+    r.innerHTML = '<div class="status done">Screen test passed. Ready for shoots.</div><div class="grid"><div class="thumb">👩<span class="lbl">take 1</span></div><div class="thumb">👩<span class="lbl">take 2</span></div><div class="thumb">👩<span class="lbl">take 3</span></div></div>';
+    // add to roster
+    const roster = document.getElementById('roster');
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = `<span class="badge ready">READY</span><div style="font-weight:600;margin-top:4px">${currentName}</div><div style="font-size:12px;color:var(--dim)">Just built · Screen test passed</div>`;
+    c.onclick = () => openExisting(currentName);
+    roster.prepend(c);
+  }, 2200);
+}
+function genOutfit() {
+  const d = document.getElementById('outDesc').value || 'Outfit';
+  const g = document.getElementById('outGrid');
+  const t = document.createElement('div');
+  t.className = 'thumb generating';
+  t.textContent = '⏳';
+  g.prepend(t);
+  setTimeout(() => { t.className = 'thumb'; t.innerHTML = '👗<span class="lbl">' + d.slice(0,18) + '</span>'; }, 1400);
 }
 </script>
 </body>
