@@ -8,21 +8,26 @@ export default async function handler(req, res) {
   const { prompt, seed } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
 
-  const key = process.env.FAL_KEY;
-  if (!key) return res.status(500).json({ error: 'FAL_KEY missing in environment' });
+  const key = process.env.SPICY_KEY || process.env.SPICYAPI_KEY || process.env.FAL_KEY;
+  if (!key) return res.status(500).json({ error: 'No API key set (SPICY_KEY, SPICYAPI_KEY, or FAL_KEY)' });
 
   try {
-    const r = await fetch('https://fal.run/fal-ai/flux/dev', {
+    const r = await fetch('https://api.spicyapi.com/v1/images/generations', {
       method: 'POST',
-      headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, image_size: 'portrait_4_3', num_images: 1, enable_safety_checker: false, seed })
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'spicy-image-1',
+        prompt,
+        size: '832*1216',
+        n: 1,
+        seed: seed || undefined,
+        enhance_prompt: true
+      })
     });
-    const text = await r.text();
-    let data;
-    try { data = JSON.parse(text); } catch { return res.status(500).json({ error: 'Bad response from fal', raw: text.slice(0, 300) }); }
-    if (!r.ok) return res.status(r.status).json({ error: data.detail || data.error || 'fal error', status: r.status });
-    const url = data.images?.[0]?.url || data.image?.url;
-    if (!url) return res.status(500).json({ error: 'No image URL in response', data });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: data.error || data.detail || 'SpicyAPI error', data });
+    const url = data.data?.[0]?.url || data.images?.[0]?.url;
+    if (!url) return res.status(500).json({ error: 'No image URL', data });
     return res.status(200).json({ url, seed: data.seed || seed });
   } catch (e) {
     return res.status(500).json({ error: e.message });
