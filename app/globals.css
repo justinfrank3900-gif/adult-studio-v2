@@ -1,0 +1,148 @@
+/* ==========================================================================
+   THE DESIGN TOKENS
+   ==========================================================================
+
+   Copied value for value from the TYME portal (app/globals.css there), so the
+   Adult Studio is not "styled like" the Avatar Studio - it is the same
+   surfaces, the same gold, the same elevation, out of the same numbers.
+
+   They live here as CSS variables and not as TypeScript constants for the
+   same reason they do there: a constant cannot cascade and cannot be themed.
+   lib/tokens.ts is only the handle.
+   ========================================================================== */
+:root {
+  /* SURFACES, lowest to highest. The steps are 7.5 apart in Lab, which is the
+   * difference between being able to tell two surfaces apart if you look and
+   * not having to. */
+  --ink: #04050a;
+  --surface: #161a26;
+  --raised: #242a3a;
+  --overlay: #333a4e;
+  --scrim: rgba(4, 5, 10, 0.75);
+
+  /* A card is a gradient, not a flat fill, so it catches light down its
+   * height the way a physical panel does. */
+  --surface-grad: linear-gradient(180deg, #1a1f2d 0%, #161a26 100%);
+  --raised-grad: linear-gradient(180deg, #292f41 0%, #242a3a 100%);
+
+  /* On a dark screen a drop shadow has nothing to fall on, so the edge is a
+   * LIGHTER line rather than a darker one. */
+  --line: #465066;
+  --line-soft: #2a3040;
+
+  --text: #ffffff;
+  --text-muted: #c3ccda;
+  --text-dim: #8f99a9;
+
+  /* The accent. Gold marks one ACTION per screen. */
+  --gold: #f5c518;
+  --gold-lit: #ffd94a;
+  --gold-deep: #c9a227;
+  --on-gold: #0a0a12;
+
+  --preview-ground: #ffffff;
+  --redact: #f5c518;
+
+  --good: #4ade80;
+  --warn: #e0913c;
+  --bad: #ef4444;
+  --bad-soft: #fca5a5;
+  --info: #38bdf8;
+
+  --series-1: #f5c518;
+  --series-2: #60a5fa;
+  --series-3: #4ade80;
+  --series-4: #c084fc;
+  --series-5: #fb7185;
+  --series-6: #2dd4bf;
+  --series-7: #f59e0b;
+  --series-8: #94a3b8;
+  --series-line: #60a5fa;
+  --on-warn: #f8dba6;
+
+  --lift-1: 0 1px 2px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.35);
+  --lift-2: 0 2px 6px rgba(0,0,0,.55), 0 14px 34px rgba(0,0,0,.45);
+  --lift-3: 0 14px 40px rgba(0,0,0,.65), 0 40px 90px rgba(0,0,0,.55);
+  --top-edge: inset 0 1px 0 rgba(255,255,255,.11);
+  --edge: inset 0 1px 0 rgba(255,255,255,.075), 0 0 0 1px var(--line);
+
+  --ease: cubic-bezier(.2,.7,.3,1);
+  --fast: 120ms;
+  --normal: 180ms;
+}
+
+/* Motion is a preference, not a decision this product gets to make for
+   somebody. Without this a motion pass makes some people genuinely unwell. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --fast: 0ms; --normal: 0ms; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* THE LIGHT ON THE PAGE. Two soft gold blooms behind everything, which is
+   what stops a near-black page reading as a flat sheet of card. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px 620px at 12% -8%, rgba(245,197,24,.085), transparent 62%),
+    radial-gradient(760px 520px at 102% 8%, rgba(245,197,24,.05), transparent 60%);
+}
+
+/* Instant state changes read as cheap no matter how good the static design
+   is, and this is the cheapest perceived quality in the whole product. */
+button, a, select, input, textarea, [role="button"], [role="tab"], label[for], summary {
+  transition:
+    background-color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease),
+    filter var(--fast) var(--ease),
+    opacity var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+/* Lit slightly rather than recoloured: a hover that changes the light works
+   on every button and cannot clash with anything. */
+button:not(:disabled):hover,
+[role="button"]:hover,
+label[for]:hover { filter: brightness(1.09); }
+
+button:not(:disabled):active,
+[role="button"]:active { transform: translateY(1px); filter: brightness(0.97); }
+
+button:disabled { cursor: not-allowed; filter: grayscale(.85) brightness(.62); box-shadow: none; }
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection { background: rgba(245,197,24,.28); color: #fff; }
+
+input, textarea, select { font-family: inherit; }
+
+/* The scrollbar, so it belongs to the room rather than to the browser. */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
