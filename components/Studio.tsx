@@ -99,16 +99,42 @@ export default function Studio({ onSignOut }: { onSignOut: () => void }) {
       setSets(demoSets); setShoots(demoShoots); setVoices(demoVoices); setLoading(false);
       return;
     }
-    try {
-      const [c, a, w, s, p, v] = await Promise.all([
-        loadCast(), loadAssets(), loadWardrobe(), loadSets(), loadShoots(), loadVoices(),
-      ]);
-      setCast(c); setAssets(a); setOutfits(w); setSets(s); setShoots(p); setVoices(v);
-    } catch (e) {
-      setSays(e instanceof Refused ? e.message : 'The studio could not read its own shelves.');
-    } finally {
-      setLoading(false);
+    /* ONE SHELF FAILING MUST NOT EMPTY THE OTHER FIVE.
+     *
+     * This was a Promise.all, which means a single rejection threw away
+     * the cast, the wardrobe, the sets, the shoots and the voices
+     * together - every room in the studio blank at once, explained by one
+     * line of text at the top of the page. Whatever actually went wrong,
+     * what it LOOKS like is that the studio lost everything.
+     *
+     * Settled instead: each shelf stands or falls on its own, and the
+     * ones that fell are named. */
+    const got = await Promise.allSettled([
+      loadCast(), loadAssets(), loadWardrobe(), loadSets(), loadShoots(), loadVoices(),
+    ]);
+
+    const shelves = ['the cast', 'her pictures', 'the wardrobe', 'the sets', 'the shoots', 'the voices'];
+    const put = [setCast, setAssets, setOutfits, setSets, setShoots, setVoices] as const;
+    const lost: string[] = [];
+
+    got.forEach((r, i) => {
+      if (r.status === 'fulfilled') {
+        (put[i] as (v: unknown) => void)(r.value);
+      } else {
+        lost.push(shelves[i]);
+      }
+    });
+
+    if (lost.length) {
+      const why = got.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      const said = why?.reason instanceof Refused ? why.reason.message
+        : why?.reason instanceof Error ? why.reason.message : '';
+      setSays(
+        `${lost.join(' and ')} could not be read${said ? `: ${said}` : '.'} `
+        + 'Everything else on this page is current.',
+      );
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
