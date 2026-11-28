@@ -137,6 +137,33 @@ export async function addOutfit(label: string, promptText: string): Promise<Outf
   return data as Outfit;
 }
 
+/**
+ * A whole rail in one write.
+ *
+ * One insert rather than thirty, because thirty round trips to put up a
+ * shoot's worth of clothes is most of the time the build takes - and
+ * because a single statement either lands or does not, instead of leaving
+ * eleven outfits up and nineteen missing with nothing to say which.
+ */
+export async function addOutfits(
+  pieces: { label: string; words: string; swatch?: string | null }[],
+  from = 1000,
+): Promise<number> {
+  if (!pieces.length) return 0;
+  const { data, error } = await supa()
+    .from('adult_wardrobe')
+    .insert(pieces.map((p, i) => ({
+      dealer_id: DEALER_ID,
+      label: p.label,
+      prompt_text: p.words,
+      reference_url: p.swatch || null,
+      sort_order: from + i,
+    })))
+    .select('id');
+  if (error) hopeless('Putting the rail up', error.message);
+  return (data || []).length;
+}
+
 export async function saveOutfit(id: string, patch: Partial<Outfit>): Promise<void> {
   const { error } = await supa().from('adult_wardrobe').update(patch).eq('id', id);
   if (error) hopeless('Saving the outfit', error.message);

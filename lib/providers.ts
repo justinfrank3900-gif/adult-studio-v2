@@ -133,7 +133,7 @@ export async function adultGenerateStill(opts: {
   referenceImage?: string | null;
   aspectRatio?: string;
   numImages?: number;
-}): Promise<{ url: string }> {
+}): Promise<{ url: string; description?: string }> {
   if (!adultImageConfigured()) {
     throw new Error('The image provider has no key on this deployment, so nothing was generated. Add SPICYAPI_KEY in Vercel and redeploy.');
   }
@@ -147,16 +147,48 @@ export async function adultGenerateStill(opts: {
    * through, and what comes back is a NEW picture of that person rather
    * than a touched-up copy of the original. */
   if (opts.referenceImage) {
+    /* NOTHING ELSE GOES IN THIS REQUEST.
+     *
+     * Their reference model takes the picture and nothing but: a prompt,
+     * a size, a character or n above one are each a 400 beside it. The
+     * first version of this sent a prompt and a size out of habit, which
+     * would have failed every single time it was pressed.
+     *
+     * What comes back instead is better than a prompt would have been -
+     * a `description` field, the picture written out as a prompt with the
+     * colours measured and the face deliberately left out. That is the
+     * only way anything in this studio ever reads a photograph, and it is
+     * what the wardrobe is built from. */
     const json = await call(base, key, '/images/generations', {
       model: process.env.ADULT_IMAGE_REFERENCE_MODEL || 'spicy-image-reference-1',
-      prompt: opts.prompt,
       reference_image: opts.referenceImage,
-      size: sizeOf(opts.aspectRatio),
-      n,
     });
     const url = urlOf(json);
     if (!url) throw new Error('The provider redrew the picture but did not say where it is.');
-    return { url };
+    const description = typeof json.description === 'string' ? json.description : '';
+
+    /* HE ASKED FOR A PARTICULAR SHOT, WHICH TAKES A SECOND PICTURE.
+     *
+     * The reference call will not take a prompt - that is a 400 - so the
+     * only way to say "like this photograph, but standing square to the
+     * camera" is their documented two-step: take the description it just
+     * handed back and send it, with his direction after it, to the
+     * photographic model. Two pictures, and worth saying so on screen.
+     *
+     * With no direction there is nothing to re-shoot, so it stops here
+     * and the first picture is hers. */
+    if (opts.prompt.trim() && description) {
+      try {
+        const again = await adultDrawFrom(`${description}\n\n${opts.prompt.trim()}`, opts.aspectRatio);
+        return { url: again.url, description };
+      } catch {
+        /* The redraw is the improvement, not the point. A refusal on the
+         * second picture leaves him with the first rather than nothing. */
+        return { url, description };
+      }
+    }
+
+    return { url, description };
   }
 
   /* 2. AN EDIT OF ONE OF OURS. Only ever with one of their own urls -
@@ -189,6 +221,30 @@ export async function adultGenerateStill(opts: {
   if (opts.character) body.character = opts.character;
 
   const json = await call(base, key, '/images/generations', body);
+  const url = urlOf(json);
+  if (!url) throw new Error('The provider made the picture but did not say where it is.');
+  return { url };
+}
+
+/**
+ * Draw from words alone, on their photographic model.
+ *
+ * The second half of the only documented way to use a reference picture:
+ * the reference model hands back a `description`, and that description -
+ * edited, or with his own direction added to it - goes to this. It is how
+ * "make her from this photograph, but standing square to the camera"
+ * happens at all, since the reference call itself refuses a prompt.
+ */
+export async function adultDrawFrom(prompt: string, aspect?: string): Promise<{ url: string }> {
+  if (!adultImageConfigured()) {
+    throw new Error('The image provider has no key on this deployment. Add SPICYAPI_KEY in Vercel and redeploy.');
+  }
+  const json = await call(imageBase(), imageKey(), '/images/generations', {
+    model: process.env.ADULT_IMAGE_PHOTO_MODEL || 'spicy-image-photo-1',
+    prompt: prompt.slice(0, 1900),
+    size: sizeOf(aspect),
+    n: 1,
+  });
   const url = urlOf(json);
   if (!url) throw new Error('The provider made the picture but did not say where it is.');
   return { url };

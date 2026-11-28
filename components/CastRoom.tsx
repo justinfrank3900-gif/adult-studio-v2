@@ -200,7 +200,7 @@ function NewPerformer({ lib, onDone, onCancel }: {
           and it becomes her anchor - every shot after it holds that face.
           Nothing is added to the books unless the picture works.
         </p>
-        <FromMine name={name} busy={busy !== null} onMade={fromMine} />
+        <FromMine name={name} busy={busy !== null} onMade={fromMine} onRail={() => { void lib.reload(); }} />
         {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
       </Panel>
     </>
@@ -415,7 +415,7 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
 
       <Panel style={{ marginBottom: 18 }}>
         <Eyebrow>Build her from my own</Eyebrow>
-        <FromMine name={who.name} busy={busy !== null} onMade={fromMine} />
+        <FromMine name={who.name} busy={busy !== null} onMade={fromMine} onRail={() => { void lib.reload(); }} />
         {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
       </Panel>
 
