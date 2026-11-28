@@ -85,6 +85,15 @@ export default function Separate({ racks, faces, onHer, onDone, name }: {
    * in state, so a Stop wired to state does nothing until the run has
    * already finished on its own. */
   const stop = useRef(false);
+  /* WHAT HAS ALREADY BEEN PAID FOR.
+   *
+   * Every picture read is money already spent. If the naming falls over
+   * after them - and their screening does drop out for seconds at a time
+   * - throwing the descriptions away would mean paying for all of them
+   * again to get back to the same place. They are held here, and the
+   * button that appears afterwards costs nothing. */
+  const paidFor = useRef<{ description: string; swatch: string | null }[]>([]);
+  const [owed, setOwed] = useState(0);
 
   const ask = async (payload: Record<string, unknown>) => {
     const jwt = await token();
@@ -102,6 +111,45 @@ export default function Separate({ racks, faces, onHer, onDone, name }: {
   /* Each picture of her is two drawings: the reference read, and the
    * redraw that obeys the angle. Each outfit is one. */
   const cost = herShots.length * 2 * EACH + racks.length * EACH;
+
+  /** Name what has been read and put it on the rail. Separate from the
+   *  reading so it can be pressed again for nothing when their screening
+   *  is having a moment. */
+  const hangThem = async (read: { description: string; swatch: string | null }[]): Promise<number> => {
+    setStep('Naming them');
+    const said = await ask({ doing: 'name', descriptions: read.map((r) => r.description) });
+    const outfits = (said.outfits as { label: string; words: string }[] | undefined) || [];
+    if (!outfits.length) throw new Error('The outfits came back empty. Press Name them again.');
+
+    setStep('Putting them up');
+    const hung = await addOutfits(outfits.map((o, i) => ({
+      label: o.label || `Outfit ${i + 1}`,
+      words: o.words,
+      swatch: read[i]?.swatch ?? null,
+    })));
+
+    const rough = Number(said.fallbacks || 0);
+    if (rough) {
+      setSays(
+        `${rough} of them came back without a name, so they are on the rail as "Needs a name" with the provider's own `
+        + 'description for words and the right picture beside them. Tidy those by hand - nothing is missing.',
+      );
+    }
+    paidFor.current = [];
+    setOwed(0);
+    return hung;
+  };
+
+  const nameAgain = async () => {
+    setRunning(true); setSays(null); setOk(null);
+    try {
+      const hung = await hangThem(paidFor.current);
+      setOk(`${hung} ${hung === 1 ? 'outfit is' : 'outfits are'} on the rail. Nothing extra was spent.`);
+      onDone(hung);
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'They still could not be named.');
+    } finally { setRunning(false); setStep(''); }
+  };
 
   const run = async () => {
     stop.current = false;
@@ -150,20 +198,9 @@ export default function Separate({ racks, faces, onHer, onDone, name }: {
         }
       }
 
-      let hung = 0;
-      if (read.length) {
-        setStep('Naming them');
-        const said = await ask({ doing: 'name', descriptions: read.map((r) => r.description) });
-        const outfits = (said.outfits as { label: string; words: string }[] | undefined) || [];
-        if (outfits.length) {
-          setStep('Putting them up');
-          hung = await addOutfits(outfits.map((o, i) => ({
-            label: o.label || `Outfit ${i + 1}`,
-            words: o.words,
-            swatch: read[i]?.swatch ?? null,
-          })));
-        }
-      }
+      paidFor.current = read;
+      setOwed(read.length);
+      const hung = read.length ? await hangThem(read) : 0;
 
       const bits: string[] = [];
       if (made) bits.push(`${name || 'She'} is made from ${made} ${made === 1 ? 'picture' : 'pictures'} and registered`);
@@ -276,6 +313,21 @@ export default function Separate({ racks, faces, onHer, onDone, name }: {
           </Row>
         </>
       )}
+
+      {owed > 0 && !running ? (
+        <>
+          <Row>
+            <Btn kind="gold" onClick={nameAgain}>
+              Name the {owed} again - costs nothing
+            </Btn>
+          </Row>
+          <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
+            {owed} pictures were read and paid for before that went wrong, and
+            they are still in hand. Naming them is a different call and a free
+            one - pressing this does not read anything again.
+          </span>
+        </>
+      ) : null}
 
       <Says text={says} />
       <Says text={ok} tone="ok" />

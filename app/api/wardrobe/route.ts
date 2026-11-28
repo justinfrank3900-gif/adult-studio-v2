@@ -69,25 +69,16 @@ async function keep(db: SupabaseClient, url: string, label: string): Promise<str
 
 type Named = { label: string; words: string };
 
-/**
- * Their description of a photograph, cut down to the clothes.
- *
- * What comes back from the reference model is the WHOLE picture - the
- * room, the light, where the camera was standing, the pose. All useful,
- * none of it wardrobe: an outfit that carries a hotel corridor in its
- * description drags that corridor into every shoot it is ever used in.
- *
- * One chat call for the whole rail rather than one each, because this is
- * rewriting rather than thinking and twenty-nine round trips to do it
- * would be the slowest part of the build by a distance.
- */
-async function nameThem(descriptions: string[]): Promise<Named[]> {
+/** Their wording for the ones that mean "try again", not "do not". */
+function passing(message: string): boolean {
+  return /temporarily unavailable|moderation_unavailable|try again|retry|rate.?limit|429|50[234]|timeout|timed out/i.test(message);
+}
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function askChat(numbered: string, expect: number): Promise<Named[]> {
   const key = process.env.ADULT_IMAGE_API_KEY || process.env.SPICYAPI_KEY;
   if (!key) throw new Error('This deployment has no provider key, so the outfits could not be named.');
-
-  const numbered = descriptions
-    .map((d, i) => `${i + 1}. ${d.replace(/\s+/g, ' ').slice(0, 1200)}`)
-    .join('\n\n');
 
   const res = await fetch(`${BASE}/chat/completions`, {
     method: 'POST',
@@ -120,7 +111,7 @@ async function nameThem(descriptions: string[]): Promise<Named[]> {
   if (!res.ok) {
     let said = '';
     try { said = (JSON.parse(text) as { error?: { message?: string } })?.error?.message || ''; } catch { /* not json */ }
-    throw new Error(said ? `The outfits could not be named: ${said}` : `The outfits could not be named (${res.status}).`);
+    throw new Error(said || `The outfits could not be named (${res.status}).`);
   }
 
   const body = JSON.parse(text) as { choices?: { message?: { content?: string } }[] };
@@ -128,14 +119,79 @@ async function nameThem(descriptions: string[]): Promise<Named[]> {
   const inner = raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   let parsed: { outfits?: Named[] };
   try { parsed = JSON.parse(inner) as { outfits?: Named[] }; }
-  catch { throw new Error('What came back was not something that could be read as a list of outfits. Press it again.'); }
+  catch { throw new Error('What came back was not something that could be read as a list of outfits.'); }
 
   const out = (parsed.outfits || []).map((o) => ({
     label: String(o?.label || '').trim().slice(0, 60),
     words: String(o?.words || '').trim().slice(0, 900),
   }));
-  if (!out.length) throw new Error('The outfits came back empty. Press it again.');
+  if (out.length !== expect) {
+    throw new Error(`${expect} went in and ${out.length} came back, so they cannot be lined up.`);
+  }
   return out;
+}
+
+/**
+ * Their description of a photograph, cut down to the clothes.
+ *
+ * What comes back from the reference model is the WHOLE picture - the
+ * room, the light, where the camera was standing, the pose. All useful,
+ * none of it wardrobe: an outfit that carries a hotel corridor in its
+ * description drags that corridor into every shoot it is ever used in.
+ *
+ * IN SMALL BATCHES, WITH RETRIES, AND NEVER EMPTY HANDED.
+ *
+ * Every picture has already been paid for by the time this runs, so
+ * failing here is not failing - it is throwing away money that is
+ * already gone. Their screening drops out for a few seconds at a time
+ * and says so in as many words ("Content screening is temporarily
+ * unavailable ... retry in a few seconds"), which is exactly the kind of
+ * thing a machine should sit out rather than hand to a person.
+ *
+ * So: eight at a time, three attempts each, four seconds then eight
+ * between. A batch that still will not go becomes the provider's own
+ * description instead - worse words than the model would have written,
+ * and infinitely better than a lost outfit, because the picture is on
+ * the rail beside it and the words can be tidied by hand.
+ *
+ * Positions never shift. The swatches are lined up by position, so an
+ * entry quietly going missing would put every dress after it under
+ * somebody else's photograph.
+ */
+async function nameThem(descriptions: string[]): Promise<{ outfits: Named[]; fallbacks: number }> {
+  const SIZE = 8;
+  const TRIES = 3;
+  const out: Named[] = [];
+  let fallbacks = 0;
+
+  for (let at = 0; at < descriptions.length; at += SIZE) {
+    const batch = descriptions.slice(at, at + SIZE);
+    const numbered = batch
+      .map((d, i) => `${i + 1}. ${d.replace(/\s+/g, ' ').slice(0, 1200)}`)
+      .join('\n\n');
+
+    let got: Named[] | null = null;
+    for (let go = 0; go < TRIES; go++) {
+      try { got = await askChat(numbered, batch.length); break; }
+      catch (e) {
+        const why = e instanceof Error ? e.message : 'no reason given';
+        if (go < TRIES - 1 && passing(why)) { await wait(4000 * (go + 1)); continue; }
+        break;
+      }
+    }
+
+    if (got) { out.push(...got); continue; }
+
+    for (const d of batch) {
+      out.push({
+        label: 'Needs a name',
+        words: d.replace(/\s+/g, ' ').trim().slice(0, 900),
+      });
+      fallbacks++;
+    }
+  }
+
+  return { outfits: out, fallbacks };
 }
 
 export async function POST(req: Request) {
@@ -189,19 +245,19 @@ export async function POST(req: Request) {
       const descriptions = raw.map((d) => String(d || '')).filter(Boolean);
       if (!descriptions.length) return no('There is nothing to name.');
 
-      const named = await nameThem(descriptions);
+      const { outfits, fallbacks } = await nameThem(descriptions);
       /* THE COUNT HAS TO MATCH OR THE RAIL IS WRONG.
        *
        * These are lined back up with the pictures they came from by
        * position, so one missing entry silently shifts every outfit after
        * it onto the wrong swatch. Better to refuse. */
-      if (named.length !== descriptions.length) {
+      if (outfits.length !== descriptions.length) {
         return no(
-          `${descriptions.length} pictures went in and ${named.length} outfits came back, so they cannot be matched up safely. Nothing was saved - press it again.`,
+          `${descriptions.length} pictures went in and ${outfits.length} outfits came back, so they cannot be matched up safely. Nothing was saved - press it again.`,
           502,
         );
       }
-      return NextResponse.json({ outfits: named });
+      return NextResponse.json({ outfits, fallbacks });
     }
 
     return no('The studio asked for something this route does not do.');
