@@ -25,6 +25,7 @@ import FromMine, { PLAIN_PORTRAIT } from './FromMine';
 import type { Library } from './Studio';
 import type { Identity } from '@/lib/types';
 import VoicePanel from './VoicePanel';
+import ScreenTest from './ScreenTest';
 
 /* The angles, as sentences rather than as words.
  *
@@ -221,7 +222,18 @@ function NewPerformer({ lib, onDone, onCancel }: {
     try {
       const id = await registerCharacter(her.name, theirs.slice(0, 3));
       await savePerformer(her.id, { provider_character_id: id });
-    } catch { /* she is still hers, just not named at their end yet */ }
+    } catch (e) {
+      /* SAID OUT LOUD. This used to be swallowed, on the reasoning that a
+       * performer who exists is better than an error - which is true, and
+       * is not a reason to hide it. The first run of this made her
+       * perfectly and failed to register her, and the screen showed
+       * nothing at all about why she was not locked in. */
+      setSays(
+        `${her.name} is made, but she could not be registered with the provider: `
+        + `${e instanceof Error ? e.message : 'no reason given'} `
+        + 'Open her and press "That is her - lock her in" to try again. Nothing is lost.',
+      );
+    }
 
     madeHer.current = her.id;
     await lib.reload();
@@ -446,30 +458,16 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
     try {
       const id = await registerCharacter(who.name, [...fresh, ...hersAtTheProvider].slice(0, 3));
       await savePerformer(who.id, { provider_character_id: id });
-    } catch { /* her pictures are hers either way */ }
+    } catch (e) {
+      setSays(
+        `Her pictures are kept, but she could not be registered: `
+        + `${e instanceof Error ? e.message : 'no reason given'} `
+        + 'Press "That is her - lock her in" below to try again.',
+      );
+    }
 
     await lib.reload();
     return fresh.length;
-  };
-
-  /**
-   * Register her with the provider.
-   *
-   * Up to three of her own pictures become a character, and the id that
-   * comes back goes on every picture AND every clip from then on. The edit
-   * chain only ever worked on stills; this is the only thing that holds a
-   * face through motion.
-   */
-  const lockIn = async () => {
-    setBusy('lock'); setSays(null); setOk(null);
-    try {
-      const id = await registerCharacter(who.name, hersAtTheProvider.slice(0, 3));
-      await savePerformer(who.id, { provider_character_id: id });
-      await lib.reload();
-      setOk('She is registered. Every picture and every clip names her now, instead of hoping she comes out the same.');
-    } catch (e) {
-      setSays(e instanceof Error ? e.message : 'She could not be registered.');
-    } finally { setBusy(null); }
   };
 
   const putAway = async () => {
@@ -526,21 +524,20 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
         onChanged={lib.reload}
       />
 
-      <Panel style={{ marginBottom: 18 }} tone={who.provider_character_id ? 'lit' : 'plain'}>
-        <Eyebrow>{who.provider_character_id ? 'Registered with the provider' : 'Not registered yet'}</Eyebrow>
-        <p style={{ margin: '0 0 14px', fontSize: 15, color: T.textMuted, lineHeight: 1.65 }}>
-          {who.provider_character_id
-            ? 'Every picture and every clip names her, so the face is held by reference rather than by resemblance. This is the only thing that holds a face through motion.'
-            : hersAtTheProvider.length
-              ? `Registering her turns ${Math.min(3, hersAtTheProvider.length)} of her pictures into a character the provider knows by name. It costs about the price of one picture, and it is what stops her drifting in video.`
-              : 'She needs at least one picture made in the studio before she can be registered.'}
-        </p>
-        {!who.provider_character_id ? (
-          <Btn kind="gold" onClick={lockIn} disabled={busy !== null || hersAtTheProvider.length === 0}>
-            {busy === 'lock' ? 'Registering' : 'Lock her in'}
-          </Btn>
-        ) : null}
-      </Panel>
+      <ScreenTest
+        who={who}
+        seed={seed}
+        character={who.provider_character_id}
+        canLock={hersAtTheProvider.length > 0}
+        locked={Boolean(who.provider_character_id)}
+        onLock={async () => {
+          const id = await registerCharacter(who.name, hersAtTheProvider.slice(0, 3));
+          await savePerformer(who.id, { provider_character_id: id });
+          await lib.reload();
+        }}
+        onKept={async () => { await lib.reload(); }}
+      />
+
 
       <Panel style={{ marginBottom: 18 }}>
         <Eyebrow>Build her from my own</Eyebrow>
