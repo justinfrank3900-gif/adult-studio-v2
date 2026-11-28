@@ -13,7 +13,7 @@
 // blank background; a first frame is her in the set, mid-action. Confusing
 // the two is how a take opens on a shot of a shop dummy.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { T } from '@/lib/tokens';
 import { Btn, Eyebrow, Lead, Panel, Title } from './kit';
 import { Area, Empty, Field, Grid, Pick, Row, Says, Tile, Working } from './parts';
@@ -21,6 +21,9 @@ import { addOutfit, keepStill, removeOutfit, saveOutfit, seedOf } from '@/lib/da
 import { make } from '@/lib/generate';
 import type { Library } from './Studio';
 import type { Outfit } from '@/lib/types';
+import Dropper from './Dropper';
+import Separate from './Separate';
+import { racksOf, readShoot, type Shot } from '@/lib/shoot';
 
 /** The backdrop every swatch is shot against, so two pieces on the rail can
  *  actually be compared. A swatch shot in a bedroom and one shot in a car
@@ -59,6 +62,80 @@ function railFrom(text: string): { label: string; words: string }[] {
       return { label, words: words || label };
     })
     .filter((x): x is { label: string; words: string } => x !== null);
+}
+
+/* ---------------------------------------------------------------------- *
+ * A SHOOT, DROPPED STRAIGHT ONTO THE RAIL
+ *
+ * "in wardrobe section I need to upload the same zip and pull every
+ * outfit."
+ *
+ * The same drop as the Cast room, doing the same sorting, minus the half
+ * about building a performer - there is nobody to build here, only
+ * clothes. Dropping a folder of a shoot on the wardrobe and getting the
+ * wardrobe out of it is the obvious thing to be able to do in the room
+ * called wardrobe, and it was only ever in Cast because that is where it
+ * happened to be written first.
+ * ---------------------------------------------------------------------- */
+
+function PullOutfits({ onDone }: { onDone: () => Promise<void> }) {
+  const [shots, setShots] = useState<Shot[]>([]);
+  const [reading, setReading] = useState<string | null>(null);
+  const [says, setSays] = useState<string | null>(null);
+  const [found, setFound] = useState<string | null>(null);
+
+  const take = async (files: File[]) => {
+    setSays(null); setFound(null); setShots([]);
+    setReading('reading them');
+    try {
+      const { shots: got, notes } = await readShoot(files, setReading);
+      if (!got.length) {
+        throw new Error('There were no pictures, clips or zips in that. Photographs (jpg, png, webp), an MP4, or a zip of them.');
+      }
+      setShots(got);
+      if (notes.length) setFound(notes.join(' '));
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'Those files could not be read.');
+    } finally { setReading(null); }
+  };
+
+  const racks = useMemo(() => racksOf(shots), [shots]);
+
+  return (
+    <Panel style={{ marginBottom: 20 }}>
+      <Eyebrow>Pull a whole rail out of a shoot</Eyebrow>
+      <p style={{ margin: '8px 0 14px', fontSize: 14, color: T.textMuted, lineHeight: 1.7, maxWidth: '62ch' }}>
+        Drop a folder or a zip of a shoot. The pictures sort themselves into
+        outfits here on this machine, and one out of each goes to the
+        provider, which draws it and sends back what it saw written out -
+        that is how the clothes get their words.
+      </p>
+
+      <Dropper
+        onFiles={take}
+        busy={reading !== null}
+        idle="Drag a shoot in here"
+        full={shots.length ? 'Drop a different shoot, or click to pick' : undefined}
+        note="A folder, a zip, or as many photographs as you like - straight off your desktop. Or click to pick them the usual way."
+      />
+
+      {reading !== null ? <Working>Reading {reading}.</Working> : null}
+
+      {racks.length ? (
+        <div style={{ marginTop: 16 }}>
+          <Separate
+            name=""
+            racks={racks}
+            faces={[]}
+            onDone={() => { void onDone(); }}
+          />
+        </div>
+      ) : null}
+
+      <Says text={found} tone="ok" />
+      <Says text={says} />
+    </Panel>
+  );
 }
 
 export default function WardrobeRoom({ lib }: { lib: Library }) {
@@ -233,6 +310,8 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
           <Says text={ok} tone="ok" />
         </div>
       </Panel>
+
+      <PullOutfits onDone={async () => { await lib.reload(); }} />
 
       {lib.outfits.length === 0 ? (
         <Empty>Nothing on the rail yet.</Empty>
