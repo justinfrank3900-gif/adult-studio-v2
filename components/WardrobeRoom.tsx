@@ -27,6 +27,40 @@ import type { Outfit } from '@/lib/types';
  *  park tell you about the room, not the clothes. */
 const SWATCH = 'Standing square to the camera on a plain mid-grey studio backdrop, even soft light, full length, feet in frame, arms relaxed at her sides.';
 
+/**
+ * A WHOLE RAIL AT ONCE.
+ *
+ * "need it to build wardrobe for every outfit as well."
+ *
+ * A woman photographed a hundred times is wearing twenty things, and
+ * typing twenty outfits into a two-field form one at a time is the kind of
+ * job that does not get finished. So the rail also takes a list: a name on
+ * its own line, what it is underneath it, a blank line between pieces.
+ *
+ * That shape is not arbitrary - it is what anybody writing a list of
+ * clothes writes without being told, and it is what comes back when the
+ * outfits are described from photographs somewhere else and pasted in.
+ */
+function railFrom(text: string): { label: string; words: string }[] {
+  return text
+    .replace(/\r\n/g, '\n')
+    .split(/\n\s*\n/)
+    .map((lump) => {
+      const lines = lump.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) return null;
+      /* A leading number or dash is how people write lists, and it is not
+       * part of what the thing is called. */
+      const label = lines[0].replace(/^(\d+[.)]\s*|[-*]\s*)/, '').replace(/[:–-]\s*$/, '').trim();
+      const words = lines.slice(1).join(' ').trim();
+      if (!label) return null;
+      /* One line on its own is a name with nothing behind it, which would
+       * put a piece on the rail that generates nothing. The name becomes
+       * the description too, which is at least true. */
+      return { label, words: words || label };
+    })
+    .filter((x): x is { label: string; words: string } => x !== null);
+}
+
 export default function WardrobeRoom({ lib }: { lib: Library }) {
   const [on, setOn] = useState<string>(lib.cast[0]?.id || '');
   const [adding, setAdding] = useState(false);
@@ -36,6 +70,8 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
   const [says, setSays] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [editing, setEditing] = useState<Outfit | null>(null);
+  const [pasting, setPasting] = useState(false);
+  const [rail, setRail] = useState('');
 
   const seed = seedOf(lib.assets, on || null);
   const wearer = lib.cast.find((c) => c.id === on) || null;
@@ -48,6 +84,29 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
       setLabel(''); setWords(''); setAdding(false);
     } catch (e) {
       setSays(e instanceof Error ? e.message : 'The outfit could not be added.');
+    } finally { setBusy(null); }
+  };
+
+  const addMany = async () => {
+    const pieces = railFrom(rail);
+    if (!pieces.length) { setSays('Nothing in that looked like a list of outfits.'); return; }
+    setBusy('rail'); setSays(null); setOk(null);
+    let put = 0;
+    try {
+      /* One at a time, and the count is kept as it goes. If the tenth of
+       * twenty fails, nine are on the rail and the screen says so - a batch
+       * that reports only "it failed" after writing half of them is how
+       * somebody ends up with a rail they cannot trust. */
+      for (const piece of pieces) {
+        await addOutfit(piece.label, piece.words);
+        put++;
+      }
+      await lib.reload();
+      setRail(''); setPasting(false);
+      setOk(`${put} ${put === 1 ? 'piece' : 'pieces'} on the rail. Pick who is wearing them and press Try it on.`);
+    } catch (e) {
+      await lib.reload();
+      setSays(`${put} of ${pieces.length} went on, then it stopped: ${e instanceof Error ? e.message : 'no reason given'}. The ones already on the rail are there - take them out of the list and press it again.`);
     } finally { setBusy(null); }
   };
 
@@ -120,8 +179,11 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
             ]}
           />
           <Row>
-            <Btn kind="gold" onClick={() => setAdding((v) => !v)}>
+            <Btn kind="gold" onClick={() => { setAdding((v) => !v); setPasting(false); }}>
               {adding ? 'Not now' : 'Add a piece'}
+            </Btn>
+            <Btn kind="gold" onClick={() => { setPasting((v) => !v); setAdding(false); }}>
+              {pasting ? 'Not now' : 'Add a whole rail'}
             </Btn>
           </Row>
           {adding ? (
@@ -140,6 +202,31 @@ export default function WardrobeRoom({ lib }: { lib: Library }) {
                   {busy === 'add' ? 'Adding' : 'Put it on the rail'}
                 </Btn>
               </Row>
+            </div>
+          ) : null}
+          {pasting ? (
+            <div style={{ display: 'grid', gap: 14, paddingTop: 6 }}>
+              <Area
+                label="The whole rail, as a list"
+                value={rail}
+                onChange={setRail}
+                rows={12}
+                placeholder={'Black slip dress\nShort black satin slip dress with thin straps, mid thigh, bare shoulders and a low back.\n\nRed gym set\nA red ribbed crop top and matching high waisted leggings, white trainers.'}
+                hint="A name on its own line, what it is underneath it, a blank line between pieces. Paste as many as you like."
+              />
+              {rail.trim() ? (
+                <span style={{ fontSize: 13, color: T.gold }}>
+                  {railFrom(rail).length} {railFrom(rail).length === 1 ? 'piece' : 'pieces'} read out of that:{' '}
+                  {railFrom(rail).slice(0, 6).map((p) => p.label).join(', ')}
+                  {railFrom(rail).length > 6 ? ` and ${railFrom(rail).length - 6} more` : ''}.
+                </span>
+              ) : null}
+              <Row>
+                <Btn kind="gold" onClick={addMany} disabled={busy === 'rail' || !rail.trim()}>
+                  {busy === 'rail' ? 'Hanging them up' : 'Put them all on the rail'}
+                </Btn>
+              </Row>
+              {busy === 'rail' ? <Working>Adding them one at a time.</Working> : null}
             </div>
           ) : null}
           <Says text={says} />
