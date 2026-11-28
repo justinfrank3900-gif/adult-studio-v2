@@ -11,7 +11,20 @@
 // exists, it can be edited, it can be registered as a character, and the
 // whole rest of the studio works on her normally.
 //
-// So this is not a copy of his picture. It is the studio meeting her.
+// AND IT IS NOT HER. THAT IS THE POINT OF IT, NOT A LIMIT OF IT.
+//
+// Their reference model turns the photograph into WORDS - "identifying
+// facial features left out", in their own documentation - and the image
+// model only ever sees the words. Their terms forbid submitting a picture
+// to obtain an image of a real person, forbid publishing a result that
+// still resembles one, and say plainly that there is no consent route for
+// faces. There is no LoRA, no fine-tune and no face swap on the platform.
+//
+// So what this door is actually for: a look, not a likeness. The build,
+// the colouring, the styling and the clothes come through; the face is a
+// new one. Pick one of those faces, register it, and she is the same woman
+// forever - which is the product. Said on the screen too, because the
+// first version of this copy told him the opposite.
 //
 // A HUNDRED PICTURES IS A CHOICE, NOT A TRAINING SET.
 //
@@ -108,17 +121,19 @@ export default function FromMine({
         note="A folder, a zip, as many photographs as you like, or a clip - straight off your desktop. Or click to pick them the usual way."
       />
 
-      <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
-        What comes back is a NEW picture of that person drawn by the studio,
-        not a copy of yours - the provider does not accept an uploaded
-        photograph as a picture it can edit, so this is the one way in.
-        Everything after it works on her normally.
+      <span style={{ fontSize: 13, color: T.warn, lineHeight: 1.6, maxWidth: '62ch' }}>
+        <strong>What comes back is a DIFFERENT WOMAN in the same clothes.</strong>{' '}
+        The provider turns your photograph into a written description with
+        the face deliberately left out, and draws from the words alone - it
+        never sees the picture. Their rules forbid using it to get a real
+        person, and forbid publishing a result that still resembles one.
       </span>
 
       <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
-        A hundred pictures do not make a closer likeness than one does - the
-        studio draws from the ONE you pick, not from the pile. What the pile
-        buys you is the choice.
+        So this is how you get a CONSISTENT performer out of a look you like
+        - the build, the colouring, the styling, the clothes - not a copy of
+        somebody. Pick a face it draws, register her, and she is the same
+        woman in every picture and every clip from then on.
       </span>
 
       {reading !== null ? <Working>Reading {reading}.</Working> : null}
