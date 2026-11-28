@@ -56,10 +56,26 @@ async function keep(db: SupabaseClient, url: string, label: string): Promise<str
     const res = await fetch(url);
     if (!res.ok) return null;
     const bytes = Buffer.from(await res.arrayBuffer());
-    const path = `${DEALER_ID}/wardrobe/${slug(label)}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-    const { error } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+
+    /* THE KIND IT ACTUALLY IS, NOT THE KIND I ASSUMED.
+     *
+     * This wrote every swatch as .jpg with an image/jpeg type. What the
+     * provider actually sends is PNG, so every picture on the rail was a
+     * PNG wearing a jpg label - 3.4MB each, and a rail of thirty-three
+     * was a hundred and thirteen megabytes on one screen. */
+    const kind = (res.headers.get('content-type') || 'image/png').split(';')[0].trim();
+    const ext = kind.includes('png') ? 'png' : kind.includes('webp') ? 'webp' : 'jpg';
+
+    const path = `${DEALER_ID}/wardrobe/${slug(label)}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+    const { error } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: kind, upsert: true });
     if (error) return null;
-    return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+
+    /* AND SERVED SMALL. The full size is kept - it is the swatch, and one
+     * day it is worth looking at properly - but a rail is a page of
+     * thumbnails, and the storage layer will resize on the way out. A
+     * browser gets WebP at about 34KB instead of the original. */
+    const full = db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    return `${full.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')}?width=600&quality=72`;
   } catch {
     /* A swatch that would not save is not worth losing the outfit over -
      * the words are the part that does the work. */
