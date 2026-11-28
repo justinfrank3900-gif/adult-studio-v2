@@ -84,22 +84,53 @@ export type Shape = {
  * neither is something somebody wants to reorganise by hand. Six to eight
  * modules of three to five lessons is a real course with a real shape.
  */
-export async function shapeCourse(title: string, description: string): Promise<Shape> {
+/** How much of an imported document is handed to the model when it is
+ *  working out a structure. Enough for a long chapter book; past this the
+ *  structure is already decided by what it has read. */
+const SOURCE_SEEN = 24000;
+
+export async function shapeCourse(title: string, description: string, source?: string): Promise<Shape> {
+  /* WITH A DOCUMENT IN HAND, THE JOB IS A DIFFERENT ONE.
+   *
+   * Without one the model is inventing a syllabus, so it is told how many
+   * modules a course should have. With one it is reading HIS material and
+   * dividing it, and a fixed six-to-eight would force it to either pad a
+   * short document or crush a long one. It is told to use his own terms
+   * too, because a structure that renames everything he wrote is a
+   * structure he has to translate before he can use it. */
+  const material = (source || '').trim();
+  const fromDoc = material.length > 400;
+
   const raw = await chat([
     {
       role: 'system',
-      content:
-        'You design the structure of paid online courses for adults. You are given a course title and a paragraph about what it is. '
-        + 'You answer with JSON only, no commentary. The JSON is an object: '
-        + '{"modules":[{"title":string,"summary":string,"lessons":[{"title":string,"summary":string}]}]}. '
-        + 'Between six and eight modules, each with three to five lessons. '
-        + 'A module summary is one sentence saying what somebody can do by the end of it. '
-        + 'A lesson summary is one sentence saying what that lesson covers. '
-        + 'Titles are plain and specific, never clickbait and never numbered - the numbers are added by the software. '
-        + 'The first module always covers the ground rules, consent and safety of the subject, because a paid course that skips that is not a course. '
-        + 'The last module is about keeping it going: practice, troubleshooting and what to do when it stops working.',
+      content: fromDoc
+        ? 'You divide written material into the structure of a paid online course for adults. '
+          + 'You are given a title, a note about the course, and the author\'s own document. '
+          + 'You answer with JSON only, no commentary. The JSON is an object: '
+          + '{"modules":[{"title":string,"summary":string,"lessons":[{"title":string,"summary":string}]}]}. '
+          + 'The structure comes from what is actually in the document - its subjects, in its order, in its own vocabulary. '
+          + 'Do not invent subjects the document does not cover, and do not leave out subjects it does cover. '
+          + 'Between three and twelve modules, each with two to six lessons, however many the material actually divides into. '
+          + 'A module summary is one sentence saying what somebody can do by the end of it. '
+          + 'A lesson summary is one sentence saying what that lesson covers. '
+          + 'Titles are plain and specific, never clickbait and never numbered - the numbers are added by the software.'
+        : 'You design the structure of paid online courses for adults. You are given a course title and a paragraph about what it is. '
+          + 'You answer with JSON only, no commentary. The JSON is an object: '
+          + '{"modules":[{"title":string,"summary":string,"lessons":[{"title":string,"summary":string}]}]}. '
+          + 'Between six and eight modules, each with three to five lessons. '
+          + 'A module summary is one sentence saying what somebody can do by the end of it. '
+          + 'A lesson summary is one sentence saying what that lesson covers. '
+          + 'Titles are plain and specific, never clickbait and never numbered - the numbers are added by the software. '
+          + 'The first module always covers the ground rules, consent and safety of the subject, because a paid course that skips that is not a course. '
+          + 'The last module is about keeping it going: practice, troubleshooting and what to do when it stops working.',
     },
-    { role: 'user', content: `Course title: ${title}\n\nWhat it is:\n${description}\n\nAnswer with the JSON only.` },
+    {
+      role: 'user',
+      content: fromDoc
+        ? `Course title: ${title}\n\nAbout it:\n${description}\n\nThe document:\n${material.slice(0, SOURCE_SEEN)}\n\nAnswer with the JSON only.`
+        : `Course title: ${title}\n\nWhat it is:\n${description}\n\nAnswer with the JSON only.`,
+    },
   ], true, 4000);
 
   const shape = objectIn(raw) as Shape;

@@ -6,6 +6,7 @@
 
 import { supa, DEALER_ID } from './supabase';
 import { cleanBlocks, type Block } from './blocks';
+import { outlineFrom, textOf, type Outline } from './outline';
 import { token } from './data';
 import { DEMO, demoCourses, demoLessons, demoModules } from './demo';
 
@@ -21,6 +22,8 @@ export type Course = {
   status: string;
   cover_url: string | null;
   created_at: string;
+  /** What it was built from, when it was built from a document. */
+  source_name?: string | null;
 };
 
 export type Module = {
@@ -45,7 +48,7 @@ export async function loadCourses(): Promise<Course[]> {
   if (DEMO) return demoCourses as Course[];
   const { data, error } = await supa()
     .from('adult_courses')
-    .select('id,title,description,status,cover_url,created_at')
+    .select('id,title,description,status,cover_url,created_at,source_name')
     .eq('dealer_id', DEALER_ID)
     .order('created_at', { ascending: false });
   if (error) hopeless('Reading the courses', error.message);
@@ -93,7 +96,7 @@ export async function addCourse(title: string, description: string): Promise<Cou
   const { data, error } = await supa()
     .from('adult_courses')
     .insert({ dealer_id: DEALER_ID, title, description })
-    .select('id,title,description,status,cover_url,created_at')
+    .select('id,title,description,status,cover_url,created_at,source_name')
     .single();
   if (error) hopeless('Starting the course', error.message);
   return data as Course;
@@ -209,4 +212,86 @@ export async function readFile(file: File): Promise<{ blocks: Block[]; source_na
 export async function readGoogle(url: string): Promise<{ blocks: Block[]; source_name: string }> {
   const said = await ask<{ blocks: Block[]; source_name: string }>({ doing: 'google', url });
   return { blocks: cleanBlocks(said.blocks), source_name: said.source_name };
+}
+
+/* ---------------------------------------------------------------------- *
+ * A WHOLE COURSE, OUT OF A DOCUMENT
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Build the course, its modules and its lessons from something already
+ * written, with his own words in the lessons.
+ *
+ * Written in that order and checked at every step, because the half-built
+ * case is real: a course with modules and no lessons looks exactly like a
+ * course somebody abandoned, and silently leaving one behind is worse than
+ * saying which step stopped. Nothing is cleaned up on failure - what got
+ * in is his, and it is on the screen where he can see it.
+ */
+export async function buildCourseFromDocument(opts: {
+  title: string;
+  blocks: Block[];
+  sourceName: string;
+}): Promise<{ course: Course; outline: Outline }> {
+  const title = opts.title.trim() || opts.sourceName;
+  const outline = outlineFrom(opts.blocks, title);
+  const source = textOf(opts.blocks);
+
+  const db = supa();
+
+  const { data: course, error: cErr } = await db
+    .from('adult_courses')
+    .insert({
+      dealer_id: DEALER_ID,
+      title,
+      /* The opening of his own document is a better description of the
+       * course than anything that could be invented for it, and it is what
+       * the Shape button reads if he presses it later. */
+      description: source.slice(0, 1200),
+      source_name: opts.sourceName,
+      source_text: source,
+    })
+    .select('id,title,description,status,cover_url,created_at,source_name')
+    .single();
+  if (cErr || !course) hopeless('Starting the course', cErr?.message || 'nothing came back');
+
+  const made = course as Course;
+
+  const { data: modules, error: mErr } = await db
+    .from('adult_modules')
+    .insert(outline.modules.map((m, i) => ({
+      dealer_id: DEALER_ID,
+      course_id: made.id,
+      title: m.title,
+      summary: m.summary,
+      sort_order: i + 1,
+    })))
+    .select('id, sort_order');
+  if (mErr || !modules) {
+    hopeless('Saving the modules', `${mErr?.message || 'nothing came back'}. The course itself was made - open it and the document can be brought in again.`);
+  }
+
+  const bySort = new Map((modules as { id: string; sort_order: number }[]).map((m) => [m.sort_order, m.id]));
+  const lessons = outline.modules.flatMap((m, i) => {
+    const moduleId = bySort.get(i + 1);
+    if (!moduleId) return [];
+    return m.lessons.map((l, n) => ({
+      dealer_id: DEALER_ID,
+      module_id: moduleId,
+      title: l.title,
+      summary: l.summary,
+      sort_order: n + 1,
+      blocks: l.blocks,
+      source_name: opts.sourceName,
+    }));
+  });
+
+  if (lessons.length) {
+    const { error: lErr } = await db.from('adult_lessons').insert(lessons);
+    if (lErr) {
+      hopeless('Saving the lessons', `${lErr.message}. The course and its ${modules.length} modules were made, but the writing did not go in.`);
+    }
+  }
+
+  return { course: made, outline };
 }

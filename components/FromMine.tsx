@@ -99,6 +99,12 @@ async function framesFromVideo(file: File, howMany = 6): Promise<string[]> {
   }
 }
 
+/* Several files at once, because "upload stills" is plural and always was.
+ * Capped so that dropping a folder of four hundred holiday photographs in
+ * here fills a grid he can actually look at rather than the whole page. */
+const MOST_FILES = 8;
+const MOST_FRAMES = 12;
+
 export default function FromMine({
   name, busy, onMade,
 }: {
@@ -112,36 +118,52 @@ export default function FromMine({
   const [frames, setFrames] = useState<string[]>([]);
   const [chosen, setChosen] = useState<number>(0);
   const [words, setWords] = useState('');
-  const [reading, setReading] = useState(false);
+  const [reading, setReading] = useState<string | null>(null);
   const [says, setSays] = useState<string | null>(null);
+  const [made, setMade] = useState(0);
 
-  const pick = async (file: File | null) => {
-    if (!file) return;
-    setReading(true); setSays(null); setFrames([]);
+  const pick = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setSays(null); setFrames([]); setMade(0);
+    const got: string[] = [];
     try {
-      if (file.size > 200 * 1024 * 1024) {
-        throw new Error('That file is over 200MB. Trim the clip, or use a picture instead.');
+      for (const file of Array.from(files).slice(0, MOST_FILES)) {
+        if (file.size > 200 * 1024 * 1024) {
+          throw new Error(`${file.name} is over 200MB. Trim the clip, or use a picture instead.`);
+        }
+        setReading(file.name);
+        const out = file.type.startsWith('video/')
+          ? await framesFromVideo(file)
+          : await framesFromPicture(file);
+        got.push(...out);
+        if (got.length >= MOST_FRAMES) break;
       }
-      const got = file.type.startsWith('video/')
-        ? await framesFromVideo(file)
-        : await framesFromPicture(file);
-      setFrames(got);
+      if (got.length === 0) throw new Error('Nothing could be read out of those files.');
+      setFrames(got.slice(0, MOST_FRAMES));
       setChosen(0);
     } catch (e) {
-      setSays(e instanceof Error ? e.message : 'That file could not be read.');
+      /* Whatever did read is kept rather than thrown away with the one that
+       * failed - five good photographs and one broken one is five
+       * photographs, not a blank screen. */
+      if (got.length) { setFrames(got.slice(0, MOST_FRAMES)); setChosen(0); }
+      setSays(e instanceof Error ? e.message : 'Those files could not be read.');
     } finally {
-      setReading(false);
+      setReading(null);
       if (input.current) input.current.value = '';
     }
   };
 
   const go = async () => {
-    if (!frames[chosen]) { setSays('Pick a frame first.'); return; }
+    if (!frames[chosen]) { setSays('Pick a picture first.'); return; }
     setSays(null);
     try {
       await onMade(frames[chosen], words.trim());
-      setFrames([]);
-      setWords('');
+      /* THE PICTURES STAY ON SCREEN AFTER ONE IS USED.
+       *
+       * Registering her with the provider takes up to three of her stills,
+       * and three stills means pressing this three times. Clearing the
+       * grid after the first one made that a re-upload every time. */
+      setMade((n) => n + 1);
     } catch (e) {
       setSays(e instanceof Error ? e.message : 'She could not be made from that.');
     }
@@ -153,25 +175,27 @@ export default function FromMine({
         ref={input}
         type="file"
         accept="image/*,video/*"
-        onChange={(e) => void pick(e.target.files?.[0] ?? null)}
+        multiple
+        onChange={(e) => void pick(e.target.files)}
         style={{ display: 'none' }}
       />
 
       <Row>
-        <Btn onClick={() => input.current?.click()} disabled={busy || reading}>
-          {reading ? 'Reading it' : frames.length ? 'Use a different file' : 'Use my own picture or video'}
+        <Btn onClick={() => input.current?.click()} disabled={busy || reading !== null}>
+          {reading !== null ? 'Reading them' : frames.length ? 'Use different files' : 'Upload stills or a video'}
         </Btn>
       </Row>
 
       <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
-        A picture, or a clip that six frames are pulled out of here on this
-        machine. What comes back is a NEW picture of that person drawn by the
-        studio, not a copy of yours - the provider does not accept an
-        uploaded photograph as a picture it can edit, so this is the one way
-        in. Everything after it works on her normally.
+        Pick as many pictures as you like at once, or a clip that six frames
+        are pulled out of here on this machine. What comes back is a NEW
+        picture of that person drawn by the studio, not a copy of yours - the
+        provider does not accept an uploaded photograph as a picture it can
+        edit, so this is the one way in. Everything after it works on her
+        normally.
       </span>
 
-      {reading ? <Working>Pulling frames out of it.</Working> : null}
+      {reading !== null ? <Working>Reading {reading}.</Working> : null}
 
       {frames.length > 0 ? (
         <>
@@ -179,13 +203,13 @@ export default function FromMine({
             fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: T.textDim,
             textTransform: 'uppercase',
           }}>
-            {frames.length === 1 ? 'Your picture' : 'Pick the frame that looks most like her'}
+            {frames.length === 1 ? 'Your picture' : 'Pick the one that looks most like her'}
           </div>
           <Grid min={140}>
             {frames.map((f, i) => (
               <Tile
                 key={i}
-                title={frames.length === 1 ? 'Yours' : `Frame ${i + 1}`}
+                title={frames.length === 1 ? 'Yours' : `${i + 1}`}
                 src={f}
                 picked={i === chosen}
                 onClick={() => setChosen(i)}
@@ -199,14 +223,22 @@ export default function FromMine({
             onChange={setWords}
             rows={3}
             placeholder="standing square to the camera on a plain backdrop, even light, looking straight at the lens"
-            hint="This describes the SHOT, not the face - the face comes from the frame above. Leave it blank for a plain studio portrait."
+            hint="This describes the SHOT, not the face - the face comes from the picture above. Leave it blank for a plain studio portrait."
           />
 
           <Row>
             <Btn kind="gold" onClick={go} disabled={busy}>
-              {busy ? 'Making her' : `Make ${name || 'her'} from this`}
+              {busy ? 'Making her' : made ? 'Make another from this one' : `Make ${name || 'her'} from this`}
             </Btn>
           </Row>
+
+          {made > 0 ? (
+            <span style={{ fontSize: 13, color: T.gold, lineHeight: 1.6, maxWidth: '62ch' }}>
+              {made} made from your pictures. Pick a different one above and make
+              another - three of hers is what registering her takes, and
+              registering is the thing that holds her face through video.
+            </span>
+          ) : null}
         </>
       ) : null}
 

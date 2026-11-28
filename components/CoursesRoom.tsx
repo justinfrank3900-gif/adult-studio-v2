@@ -23,8 +23,10 @@ import { Btn, Eyebrow, Lead, Panel, Title } from './kit';
 import { Area, Empty, Field, Grid, Row, Says, Tile, Working } from './parts';
 import { BringIn, LessonEditor, LessonView } from './Lesson';
 import { minutesOf, type Block } from '@/lib/blocks';
+import { outlineFrom } from '@/lib/outline';
 import {
-  addCourse, addLesson, addModule, loadCourse, loadCourses, removeCourse,
+  addCourse, addLesson, addModule, buildCourseFromDocument,
+  loadCourse, loadCourses, removeCourse,
   removeLesson, removeModule, saveCourse, saveLesson, saveModule, shapeIt,
   swapOrder, writeIt,
   type Course, type Lesson, type Module,
@@ -34,11 +36,19 @@ export default function CoursesRoom() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [making, setMaking] = useState(false);
+  /* One of three screens rather than two booleans that can both be true. */
+  const [how, setHow] = useState<'none' | 'write' | 'bring'>('none');
   const [title, setTitle] = useState('');
   const [about, setAbout] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [says, setSays] = useState<string | null>(null);
+
+  /* What came out of a document, held here until he has looked at what it
+   * is about to become. Building straight off the import would be faster,
+   * and would also mean the first time he sees the structure is after
+   * twenty-three lessons already exist. */
+  const [came, setCame] = useState<{ blocks: Block[]; sourceName: string } | null>(null);
+  const [docTitle, setDocTitle] = useState('');
 
   const reload = useCallback(async () => {
     try { setCourses(await loadCourses()); }
@@ -52,11 +62,33 @@ export default function CoursesRoom() {
     setBusy('new'); setSays(null);
     try {
       const made = await addCourse(title.trim(), about.trim());
-      setTitle(''); setAbout(''); setMaking(false);
+      setTitle(''); setAbout(''); setHow('none');
       await reload();
       setOpen(made.id);
     } catch (e) {
       setSays(e instanceof Error ? e.message : 'The course could not be started.');
+    } finally { setBusy(null); }
+  };
+
+  /* The shape the document is about to become, worked out here in the
+   * browser. It costs nothing, and it is the same function that builds it,
+   * so what he is shown is what he gets. */
+  const plan = came ? outlineFrom(came.blocks, docTitle.trim() || came.sourceName) : null;
+
+  const build = async () => {
+    if (!came) return;
+    setBusy('build'); setSays(null);
+    try {
+      const { course } = await buildCourseFromDocument({
+        title: docTitle.trim() || came.sourceName,
+        blocks: came.blocks,
+        sourceName: came.sourceName,
+      });
+      setCame(null); setDocTitle(''); setHow('none');
+      await reload();
+      setOpen(course.id);
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'The course could not be built from that.');
     } finally { setBusy(null); }
   };
 
@@ -68,15 +100,32 @@ export default function CoursesRoom() {
       <Eyebrow>Courses</Eyebrow>
       <Title lead="The" gold="courses" />
       <Lead>
-        Write what a course is in a paragraph and it comes back as modules and
-        lessons you can move around. Nothing writes itself until you ask it to.
+        Two ways in. Write a paragraph about a course and it comes back as
+        modules and lessons - or hand it a Google Doc, a Google Sheet or a
+        Word file you already wrote, and the whole course gets built out of
+        that, your words included.
       </Lead>
 
       <Panel style={{ marginBottom: 20 }}>
-        <Row>
-          <Btn kind="gold" onClick={() => setMaking((v) => !v)}>{making ? 'Not now' : 'Start a course'}</Btn>
-        </Row>
-        {making ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <Btn
+            kind={how === 'write' ? 'quiet' : 'gold'}
+            onClick={() => { setHow((v) => (v === 'write' ? 'none' : 'write')); setSays(null); }}
+          >
+            {how === 'write' ? 'Not now' : 'Write what it is'}
+          </Btn>
+          <Btn
+            kind={how === 'bring' ? 'quiet' : 'gold'}
+            onClick={() => {
+              setHow((v) => (v === 'bring' ? 'none' : 'bring'));
+              setCame(null); setDocTitle(''); setSays(null);
+            }}
+          >
+            {how === 'bring' ? 'Not now' : 'Build it from a document'}
+          </Btn>
+        </div>
+
+        {how === 'write' ? (
           <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
             <Field label="What it is called" value={title} onChange={setTitle} placeholder="How to train a submissive" />
             <Area
@@ -94,13 +143,100 @@ export default function CoursesRoom() {
             </Row>
           </div>
         ) : null}
+
+        {how === 'bring' ? (
+          <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
+            {came ? null : (
+              <BringIn
+                busy={busy !== null}
+                onBlocks={(blocks, name) => {
+                  /* THE FILE NAME, NOT THE FIRST HEADING.
+                   *
+                   * The first heading is almost always the first SECTION,
+                   * and taking it as the course title put the same words
+                   * on the course, on its only module and on its first
+                   * lesson. The name he saved the document under is the
+                   * name he already gave this thing - and it is an
+                   * editable box, sitting right there. A Google link that
+                   * arrives without a name falls back to the heading,
+                   * because something is better than Untitled. */
+                  const named = !/^a Google (Doc|Sheet)$/.test(name);
+                  const head = blocks.find((b) => b.type === 'heading' && b.text.trim());
+                  setCame({ blocks, sourceName: name });
+                  setDocTitle(
+                    named
+                      ? name.replace(/\.(docx|csv|tsv|txt|md|markdown)$/i, '').replace(/[-_]+/g, ' ').trim()
+                      : head && head.type === 'heading' ? head.text.trim() : '',
+                  );
+                  setSays(null);
+                }}
+              />
+            )}
+
+            {came && plan ? (
+              <>
+                <Field label="What the course is called" value={docTitle} onChange={setDocTitle} />
+
+                <div style={{
+                  background: T.raised, border: `1px solid ${T.lineSoft}`,
+                  borderRadius: 12, padding: '14px 16px',
+                }}>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.14em',
+                    color: T.textDim, textTransform: 'uppercase', marginBottom: 10,
+                  }}>
+                    {came.sourceName} becomes
+                  </div>
+                  {plan.flat ? (
+                    <p style={{ margin: 0, fontSize: 14, color: T.text, lineHeight: 1.7 }}>
+                      One lesson with all of it in it. There are no headings in
+                      that document to divide it on, so it comes in whole - and
+                      the Give it a shape button inside the course will cut it
+                      into modules and lessons using what it actually says.
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ margin: '0 0 10px', fontSize: 14, color: T.text, lineHeight: 1.7 }}>
+                        {plan.modules.length} {plan.modules.length === 1 ? 'module' : 'modules'},{' '}
+                        {plan.lessons} {plan.lessons === 1 ? 'lesson' : 'lessons'}, written already -
+                        your own words, laid out, nothing invented.
+                      </p>
+                      <div style={{ display: 'grid', gap: 4 }}>
+                        {plan.modules.map((m, i) => (
+                          <span key={i} style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>
+                            <span style={{ color: T.gold, fontWeight: 700 }}>{i + 1}.</span>{' '}
+                            {m.title}
+                            <span style={{ color: T.textDim }}>
+                              {' - '}{m.lessons.length} {m.lessons.length === 1 ? 'lesson' : 'lessons'}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <Row>
+                  <Btn kind="gold" onClick={build} disabled={busy !== null || !docTitle.trim()}>
+                    {busy === 'build' ? 'Building it' : 'Build the course'}
+                  </Btn>
+                  <Btn kind="quiet" onClick={() => { setCame(null); setDocTitle(''); }} disabled={busy !== null}>
+                    Use a different document
+                  </Btn>
+                </Row>
+                {busy === 'build' ? <Working>Writing the modules and the lessons in.</Working> : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
         <Says text={says} />
       </Panel>
 
       {loading ? (
         <p style={{ fontSize: 15, color: T.textMuted }}>Reading the courses.</p>
       ) : courses.length === 0 ? (
-        <Empty>No courses yet. Write what one is and it will take shape.</Empty>
+        <Empty>No courses yet. Write what one is, or build one out of a document you already have.</Empty>
       ) : (
         <Grid min={240}>
           {courses.map((c) => (
@@ -109,7 +245,9 @@ export default function CoursesRoom() {
               title={c.title}
               ratio="4 / 3"
               src={c.cover_url}
-              note={c.description.slice(0, 110) || 'Nothing written about it yet'}
+              note={c.source_name
+                ? `From ${c.source_name}`
+                : c.description.slice(0, 110) || 'Nothing written about it yet'}
               footer={<Btn kind="gold" onClick={() => setOpen(c.id)}>Open</Btn>}
             />
           ))}

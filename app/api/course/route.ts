@@ -150,13 +150,23 @@ export async function POST(req: Request) {
       );
     }
 
+    /* GOOGLE PUTS THE DOCUMENT'S REAL NAME ON THE DOWNLOAD.
+     *
+     * Worth digging out, because "a Google Doc" is a useless thing to call
+     * a course six months later, and it is the only name the link carries
+     * - the url itself is a file id and nothing else. */
+    const named = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(res.headers.get('content-disposition') || '')?.[1];
+    const fileName = named
+      ? decodeURIComponent(named).replace(/\.(docx|csv)$/i, '').trim()
+      : '';
+
     const bytes = Buffer.from(await res.arrayBuffer());
     try {
       const blocks = doc ? blocksFromDocx(bytes) : blocksFromCsv(bytes.toString('utf8'));
       if (!blocks.length) return no('That file came through but had no writing in it that could be laid out.');
       return NextResponse.json({
         blocks: cleanBlocks(blocks),
-        source_name: doc ? 'a Google Doc' : 'a Google Sheet',
+        source_name: fileName || (doc ? 'a Google Doc' : 'a Google Sheet'),
       });
     } catch (e) {
       return no(e instanceof Error ? e.message : 'That file came through but could not be read.');
@@ -174,13 +184,17 @@ export async function POST(req: Request) {
       if (!courseId) return no('Which course?');
 
       const { data: course } = await db
-        .from('adult_courses').select('id, title, description').eq('id', courseId).maybeSingle();
+        .from('adult_courses').select('id, title, description, source_text').eq('id', courseId).maybeSingle();
       if (!course) return no('That course is not on this account.');
-      if (!String(course.description || '').trim()) {
+      if (!String(course.description || '').trim() && !String(course.source_text || '').trim()) {
         return no('Write what the course is about first - a paragraph is enough. That paragraph IS what the shape is built from.');
       }
 
-      const shape = await shapeCourse(course.title, course.description);
+      /* A course built from a document shapes from the DOCUMENT, not from
+       * the first twelve hundred characters of it that landed in the
+       * description box. Keeping the text on the row is the only reason
+       * the second press of this button is as good as the first. */
+      const shape = await shapeCourse(course.title, course.description, String(course.source_text || ''));
 
       /* THE OLD SHAPE GOES FIRST, AND ON PURPOSE.
        *

@@ -102,18 +102,63 @@ function NewPerformer({ lib, onDone, onCancel }: {
 }) {
   const [name, setName] = useState('');
   const [look, setLook] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [says, setSays] = useState<string | null>(null);
 
   const add = async () => {
-    setBusy(true); setSays(null);
+    setBusy('add'); setSays(null);
     try {
       const made = await addPerformer(name.trim(), look.trim());
       await lib.reload();
       onDone(made.id);
     } catch (e) {
       setSays(e instanceof Error ? e.message : 'She could not be added.');
-      setBusy(false);
+      setBusy(null);
+    }
+  };
+
+  /**
+   * Make her out of pictures he already has, in one press.
+   *
+   * THE DRAWING HAPPENS BEFORE SHE EXISTS, AND THAT ORDER IS THE POINT.
+   *
+   * Creating the performer first and then drawing would leave a nameless
+   * empty performer on the books every time the provider refused a
+   * photograph - and it refuses them for real reasons, like a face it will
+   * not redraw. So the picture is made against nobody, and only once it
+   * exists is she created and the picture filed under her as her anchor.
+   * A failure here leaves the books exactly as they were.
+   */
+  const fromMine = async (referenceImage: string, words: string) => {
+    if (!name.trim()) throw new Error('Give her a name first - the picture gets filed under it.');
+    setBusy('mine'); setSays(null);
+    try {
+      const shot = await make({
+        what: 'still',
+        prompt: [look.trim(), words || PLAIN_PORTRAIT].filter(Boolean).join(' '),
+        identity_id: null,
+        reference_image: referenceImage,
+        label: `${name.trim()}_from_mine`,
+        aspect: '9:16',
+      });
+
+      const her = await addPerformer(name.trim(), look.trim());
+      await keepStill({
+        identityId: her.id,
+        spicyUrl: shot.provider_url,
+        ourUrl: shot.url,
+        storagePath: shot.path,
+        label: 'From my own picture',
+        angle: 'from_mine',
+        masterRef: true,
+        extra: { from: 'upload' },
+      });
+      await lib.reload();
+      onDone(her.id);
+    } catch (e) {
+      setSays(e instanceof Error ? e.message : 'She could not be made from that.');
+      setBusy(null);
+      throw e;
     }
   };
 
@@ -122,11 +167,12 @@ function NewPerformer({ lib, onDone, onCancel }: {
       <Eyebrow>Pornstars</Eyebrow>
       <Title lead="A new" gold="performer" />
       <Lead>
-        Two things: what she is called, and what she looks like in words. The
-        words are the part a picture cannot carry on its own - age, build,
-        colouring, the things that have to stay true in every shot.
+        Two ways to make her: describe her in words, or upload pictures of
+        somebody and have the studio draw her from them. Either way she needs
+        a name and a line about the look - that is the part a picture cannot
+        carry on its own.
       </Lead>
-      <Panel>
+      <Panel style={{ marginBottom: 18 }}>
         <div style={{ display: 'grid', gap: 16 }}>
           <Field label="Name" value={name} onChange={setName} placeholder="What you will call her" />
           <Area
@@ -138,13 +184,24 @@ function NewPerformer({ lib, onDone, onCancel }: {
             hint="Written once and sent with every shot. It never overrides the picture - once she has a first still, the picture decides the face and this fills in the rest."
           />
           <Row>
-            <Btn kind="gold" onClick={add} disabled={busy || !name.trim()}>
-              {busy ? 'Adding' : 'Add her'}
+            <Btn kind="gold" onClick={add} disabled={busy !== null || !name.trim()}>
+              {busy === 'add' ? 'Adding' : 'Add her'}
             </Btn>
-            <Btn kind="quiet" onClick={onCancel}>Back</Btn>
+            <Btn kind="quiet" onClick={onCancel} disabled={busy !== null}>Back</Btn>
           </Row>
           <Says text={says} />
         </div>
+      </Panel>
+
+      <Panel>
+        <Eyebrow>Or build her from pictures I already have</Eyebrow>
+        <p style={{ margin: '8px 0 14px', fontSize: 14, color: T.textMuted, lineHeight: 1.7, maxWidth: '62ch' }}>
+          Upload stills or a clip. The first picture that comes back is hers,
+          and it becomes her anchor - every shot after it holds that face.
+          Nothing is added to the books unless the picture works.
+        </p>
+        <FromMine name={name} busy={busy !== null} onMade={fromMine} />
+        {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
       </Panel>
     </>
   );
