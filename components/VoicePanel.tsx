@@ -47,6 +47,13 @@ export default function VoicePanel({
   const [heard, setHeard] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [says, setSays] = useState<string | null>(null);
+  /* WHICH ROW WENT WRONG, NOT JUST THAT SOMETHING DID.
+   *
+   * The refusal used to print once, underneath the whole list. Press Hear
+   * it on the ninth of forty-five voices and the answer appeared several
+   * screens below the button - which is indistinguishable from nothing
+   * happening, and is exactly what it looked like. */
+  const [rowSays, setRowSays] = useState<{ id: string; message: string } | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
 
@@ -67,6 +74,10 @@ export default function VoicePanel({
   useEffect(() => () => { if (audio.current) audio.current.pause(); }, []);
 
   const play = (src: string, tag: string) => {
+    if (!src) {
+      setSays('The provider gave no sound back for that one, so there is nothing to play.');
+      return;
+    }
     if (audio.current) { audio.current.pause(); audio.current = null; }
     const a = new Audio(src);
     audio.current = a;
@@ -95,7 +106,7 @@ export default function VoicePanel({
     const cached = heard[`${v.id}|${line}|${direction}`];
     if (cached) { play(cached, v.id); return; }
 
-    setBusy(v.id); setSays(null);
+    setBusy(v.id); setSays(null); setRowSays(null);
     try {
       const made = await post<{ url: string }>({
         doing: 'say',
@@ -107,7 +118,7 @@ export default function VoicePanel({
       setHeard((h) => ({ ...h, [`${v.id}|${line}|${direction}`]: made.url }));
       play(made.url, v.id);
     } catch (e) {
-      setSays(e instanceof Error ? e.message : 'That voice could not read it.');
+      setRowSays({ id: v.id, message: e instanceof Error ? e.message : 'That voice could not read it.' });
     } finally { setBusy(null); }
   };
 
@@ -223,6 +234,13 @@ export default function VoicePanel({
                   <Btn kind="gold" onClick={() => keep(v)} disabled={busy !== null}>
                     {busy === `keep:${v.id}` ? 'Keeping' : 'This is her'}
                   </Btn>
+                  {rowSays?.id === v.id ? (
+                    <span style={{
+                      flexBasis: '100%', fontSize: 13, color: T.warn, lineHeight: 1.6,
+                    }}>
+                      {rowSays.message}
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

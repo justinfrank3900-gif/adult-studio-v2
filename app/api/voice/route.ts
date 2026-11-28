@@ -14,7 +14,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { DEALER_ID, SUPABASE_ANON, SUPABASE_URL } from '@/lib/config';
+import { BUCKET, DEALER_ID, SUPABASE_ANON, SUPABASE_URL } from '@/lib/config';
 import { bestModelFor, listVoices, say, takesInstructions, voiceConfigured } from '@/lib/voice';
 
 export const runtime = 'nodejs';
@@ -94,7 +94,30 @@ export async function POST(req: Request) {
       }
 
       const made = await say({ voice, text, model: model || undefined, instructions });
-      return NextResponse.json(made);
+
+      /* WHERE THEY SENT THE SOUND ITSELF, IT GOES IN OUR BUCKET.
+       *
+       * Their endpoint is OpenAI-shaped and may answer either way. Bytes
+       * cannot be handed to an <audio> from here, so they are written as
+       * the caller - the same storage rule as every other write in this
+       * app - and the page gets a url either way. */
+      if (made.audio && made.audio.length) {
+        const ext = (made.contentType || 'audio/mpeg').includes('wav') ? 'wav' : 'mp3';
+        const path = `${DEALER_ID}/voice/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+        const { error: upErr } = await db.storage
+          .from(BUCKET)
+          .upload(path, made.audio, { contentType: made.contentType || 'audio/mpeg', upsert: true });
+        if (upErr) {
+          return no(`She said it, but the clip could not be saved to play back: ${upErr.message}`, 502);
+        }
+        return NextResponse.json({
+          url: db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl,
+          seconds: made.seconds,
+          cost: made.cost,
+        });
+      }
+
+      return NextResponse.json({ url: made.url, seconds: made.seconds, cost: made.cost });
     }
 
     /* ----------------------------------------------------- that is her */

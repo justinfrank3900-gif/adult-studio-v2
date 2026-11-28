@@ -94,7 +94,17 @@ async function spicy(path: string, init: RequestInit): Promise<Record<string, un
     throw new Error(said ? `The voice provider refused that: ${said}` : `The voice provider refused that (${res.status}). ${text.slice(0, 200)}`);
   }
   try { return JSON.parse(text) as Record<string, unknown>; }
-  catch { throw new Error('The voice provider answered with something that was not JSON.'); }
+  catch {
+    /* Said plainly rather than as "not JSON". If their speech endpoint
+     * ever starts answering with the audio itself instead of a url, this
+     * is the sentence that says which of the two happened - and the fix
+     * is a different one from a key or a bad voice name. */
+    const kind = res.headers.get('content-type') || '';
+    if (/^audio\//.test(kind)) {
+      throw new Error(`The provider sent the sound itself (${kind}) rather than a link to it, which this build cannot play yet. Nothing is wrong with the voice.`);
+    }
+    throw new Error(`The voice provider answered with something that could not be read${kind ? ` (${kind})` : ''}.`);
+  }
 }
 
 export type VoiceChoice = {
@@ -115,13 +125,30 @@ export type VoiceChoice = {
  */
 export async function listVoices(): Promise<VoiceChoice[]> {
   const body = await spicy('/voices?limit=200', { method: 'GET' });
-  const rows = (body.data || []) as Record<string, unknown>[];
-  return rows.map((v) => ({
-    id: String(v.id || v.name || ''),
-    name: String(v.name || v.id || ''),
-    kind: String(v.kind || 'preset'),
-    models: Array.isArray(v.models) ? (v.models as unknown[]).map(String) : [],
-  })).filter((v) => v.id);
+  const rows = (body.data || []) as (Record<string, unknown>[]) ;
+  return rows.map((v) => {
+    const id = String(v.id || '');
+    const name = String(v.name || '');
+    const kind = String(v.kind || 'preset');
+    /* A PRESET IS SPOKEN BY NAME, A CLONE BY ITS ID.
+     *
+     * This read `v.id || v.name`, which looks harmless and is the whole
+     * bug: for a preset their list carries an internal id, the speech
+     * endpoint wants "Serena", and the id it was being handed instead
+     * came back refused. The refusal was then printed below forty-five
+     * rows of voices, off the bottom of the screen, so pressing Hear it
+     * did nothing at all as far as anybody could see.
+     *
+     * Cloned voices are the other way round - those really are spoken by
+     * their vc_ id, on the custom model. */
+    const cloned = kind === 'cloned' || id.startsWith('vc_');
+    return {
+      id: (cloned ? id : name) || name || id,
+      name: name || id,
+      kind,
+      models: Array.isArray(v.models) ? (v.models as unknown[]).map(String) : [],
+    };
+  }).filter((v) => v.id);
 }
 
 /**
@@ -137,7 +164,7 @@ export async function say(opts: {
   text: string;
   model?: string;
   instructions?: string | null;
-}): Promise<{ url: string; seconds: number; cost: number }> {
+}): Promise<{ url: string; audio?: Buffer; contentType?: string; seconds: number; cost: number }> {
   const model = opts.model || 'spicy-voice-1';
   const limit = maxInput(model);
 
@@ -160,8 +187,48 @@ export async function say(opts: {
     body.instructions = opts.instructions.slice(0, 1600);
   }
 
-  const said = await spicy('/audio/speech', { method: 'POST', body: JSON.stringify(body) });
-  const url = String(said.url || '');
+  /* TWO SHAPES OF ANSWER, AND BOTH ARE FINE.
+   *
+   * Their speech endpoint is OpenAI-shaped, and OpenAI's returns the
+   * audio ITSELF rather than a link to it. Theirs documents a url. Which
+   * one actually arrives is not worth betting a feature on, so both are
+   * handled: a url is passed through, and bytes are handed up for the
+   * route to put in our own bucket. Guessing wrong here was a voice
+   * button that did nothing. */
+  const res = await fetch(`${BASE}/audio/speech`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const refused = await res.text();
+    let why = '';
+    try {
+      const j = JSON.parse(refused) as { error?: { message?: string }; message?: string };
+      why = j?.error?.message || j?.message || '';
+    } catch { /* not json */ }
+    throw new Error(
+      why
+        ? `The voice provider refused that: ${why}`
+        : `The voice provider refused that (${res.status}). ${refused.slice(0, 200)}`,
+    );
+  }
+
+  const kind = res.headers.get('content-type') || '';
+
+  if (/^audio\//.test(kind) || /octet-stream/.test(kind)) {
+    const audio = Buffer.from(await res.arrayBuffer());
+    if (!audio.length) throw new Error('The voice provider answered with an empty clip.');
+    return { url: '', audio, contentType: kind.split(';')[0] || 'audio/mpeg', seconds: 0, cost: 0 };
+  }
+
+  const answer = await res.text();
+  let said: Record<string, unknown>;
+  try { said = JSON.parse(answer) as Record<string, unknown>; }
+  catch { throw new Error(`The voice provider answered with something that could not be read${kind ? ` (${kind})` : ''}.`); }
+
+  const url = String(said.url || (said.data as { url?: string }[] | undefined)?.[0]?.url || '');
   if (!url) throw new Error('The voice provider made the clip but did not say where it is.');
 
   return {
