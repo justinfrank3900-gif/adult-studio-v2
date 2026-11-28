@@ -205,3 +205,84 @@ export function groupBy<T>(
     return { members: g.members, pick, signature: g.centre };
   });
 }
+
+/* ---------------------------------------------------------------------- *
+ * WHICH PICTURE IS HER FACE
+ *
+ * The studio draws her from ONE photograph, so which one it is decides
+ * what she looks like forever. Asking him to scroll two hundred
+ * thumbnails and judge sharpness by eye is asking him to do the one job a
+ * machine is better at.
+ *
+ * There is no face detector to lean on - Chrome's is behind a flag and
+ * nothing else has one - so this measures the three things that make a
+ * photograph good to draw from, in the band where a standing figure's
+ * head is:
+ *
+ *   SHARP.    Out of focus is the one fault nothing downstream can undo.
+ *             Measured as how much neighbouring pixels differ.
+ *   FRONTAL.  A face square to the lens is symmetric about its middle; a
+ *             three-quarter turn is not. Measured by folding the band
+ *             over and comparing.
+ *   LIT.      Blown out or in shadow both lose the features. Measured as
+ *             distance from a mid exposure.
+ *
+ * It is a heuristic and it is allowed to be: the cost of it being wrong
+ * is one picture he looks at and replaces, not a wrong turn he cannot
+ * see.
+ * ---------------------------------------------------------------------- */
+
+/** Where a head sits in a full-length standing shot. */
+const HEAD = { x0: 0.30, x1: 0.70, y0: 0.02, y1: 0.30 };
+
+function grey(pixels: Uint8ClampedArray, i: number): number {
+  return (pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114) / 255;
+}
+
+export function faceScore(pixels: Uint8ClampedArray, w: number, h: number): number {
+  const x0 = Math.floor(w * HEAD.x0), x1 = Math.ceil(w * HEAD.x1);
+  const y0 = Math.floor(h * HEAD.y0), y1 = Math.ceil(h * HEAD.y1);
+  const bw = x1 - x0, bh = y1 - y0;
+  if (bw < 8 || bh < 8) return 0;
+
+  let edge = 0, lit = 0, n = 0;
+  for (let y = y0 + 1; y < y1 - 1; y++) {
+    for (let x = x0 + 1; x < x1 - 1; x++) {
+      const i = (y * w + x) * 4;
+      const here = grey(pixels, i);
+      /* A cheap Laplacian: how far this pixel is from its neighbours.
+       * Detail in the face reads high, a smooth backdrop reads nothing. */
+      const around =
+        grey(pixels, i - 4) + grey(pixels, i + 4)
+        + grey(pixels, i - w * 4) + grey(pixels, i + w * 4);
+      edge += Math.abs(here * 4 - around);
+      lit += here;
+      n++;
+    }
+  }
+  if (!n) return 0;
+
+  const sharp = Math.min(1, (edge / n) / 0.22);
+  const light = lit / n;
+  /* Peaks at a mid exposure and falls away either side of it. */
+  const exposed = Math.max(0, 1 - Math.abs(light - 0.52) / 0.42);
+
+  /* Fold the band over its own middle. A face square to the lens matches
+   * itself; a profile does not. */
+  let apart = 0, pairs = 0;
+  const mid = Math.floor(bw / 2);
+  for (let y = y0; y < y1; y += 2) {
+    for (let d = 1; d < mid; d++) {
+      const l = (y * w + (x0 + mid - d)) * 4;
+      const r = (y * w + (x0 + mid + d)) * 4;
+      apart += Math.abs(grey(pixels, l) - grey(pixels, r));
+      pairs++;
+    }
+  }
+  const frontal = pairs ? Math.max(0, 1 - (apart / pairs) / 0.30) : 0;
+
+  /* Sharpness first: a crisp three-quarter turn is a better picture to
+   * draw from than a soft straight-on one, because the angle can be
+   * asked for again afterwards and the focus cannot. */
+  return 0.46 * sharp + 0.34 * frontal + 0.20 * exposed;
+}

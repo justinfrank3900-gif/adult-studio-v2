@@ -39,8 +39,8 @@ import { Btn } from './kit';
 import { Area, Grid, Row, Says, Tile, Working } from './parts';
 import { picturesInZip } from '@/lib/unzip';
 import { filesDropped } from '@/lib/dropped';
-import { groupBy, signatureOf, type Signature } from '@/lib/sort';
-import BuildRail, { type Rack } from './BuildRail';
+import { faceScore, groupBy, signatureOf, type Signature } from '@/lib/sort';
+import Separate, { type Face, type Rack } from './Separate';
 
 /** The provider caps a request body at 4.5MB, and a phone photograph is
  *  bigger than that on its own. Scaled down before it is sent - a face at
@@ -82,6 +82,8 @@ type Shot = {
   thumb: string;
   /** What this picture is made of, for sorting it with its own kind. */
   sig: Signature;
+  /** How good a picture of her face it is, 0 to 1. */
+  face: number;
   /** The original, scaled up only when this one is the one being sent. */
   file?: Blob;
   /** A video frame, which never had a file behind it. */
@@ -98,7 +100,7 @@ async function draw(source: CanvasImageSource, w: number, h: number, side: numbe
  *  hundred photographs into outfits costs one extra read of a canvas. */
 async function drawAnd(
   source: CanvasImageSource, w: number, h: number, side: number, quality: number,
-): Promise<{ url: string; sig: Signature }> {
+): Promise<{ url: string; sig: Signature; face: number }> {
   const scale = Math.min(1, side / Math.max(w, h));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(w * scale));
@@ -110,6 +112,7 @@ async function drawAnd(
   return {
     url: canvas.toDataURL('image/jpeg', quality),
     sig: signatureOf(pixels, canvas.width, canvas.height),
+    face: faceScore(pixels, canvas.width, canvas.height),
   };
 }
 
@@ -123,7 +126,7 @@ function loadPicture(blob: Blob): Promise<{ img: HTMLImageElement; free: () => v
   });
 }
 
-async function thumbOf(blob: Blob): Promise<{ url: string; sig: Signature }> {
+async function thumbOf(blob: Blob): Promise<{ url: string; sig: Signature; face: number }> {
   const { img, free } = await loadPicture(blob);
   try { return await drawAnd(img, img.naturalWidth, img.naturalHeight, THUMB_SIDE, THUMB_QUALITY); }
   finally { free(); }
@@ -170,6 +173,7 @@ async function framesFromVideo(file: File, howMany = 6): Promise<Shot[]> {
       out.push({
         thumb: small.url,
         sig: small.sig,
+        face: small.face,
         ready: await draw(video, video.videoWidth, video.videoHeight, MAX_SIDE, JPEG_QUALITY),
         name: `frame ${i + 1}`,
       });
@@ -182,17 +186,18 @@ async function framesFromVideo(file: File, howMany = 6): Promise<Shot[]> {
 }
 
 export default function FromMine({
-  name, busy, onMade, onRail,
+  name, busy, onMade, onRail, onEverything,
 }: {
   /** What she is called, for the label on what comes back. */
   name: string;
   busy: boolean;
   /** Hands back the chosen picture as a data url and the words to draw with. */
   onMade: (referenceImage: string, prompt: string) => Promise<void>;
-  /** Told how many outfits went up, so the room can reload its rail. Left
-   *  off where there is no rail to build - on a new performer, there is
-   *  nobody to hang them on yet. */
+  /** Told how many outfits went up, so the room can reload its rail. */
   onRail?: (added: number) => void;
+  /** Draw her from several pictures at once, keep them all and register
+   *  her. Returns how many pictures of her were made. */
+  onEverything?: (shots: { image: string; direction: string }[]) => Promise<number>;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
@@ -242,7 +247,7 @@ export default function FromMine({
             if (got.length >= MOST_SHOWN) break;
             try {
               const t = await thumbOf(pic.blob);
-              got.push({ thumb: t.url, sig: t.sig, file: pic.blob, name: pic.name });
+              got.push({ thumb: t.url, sig: t.sig, face: t.face, file: pic.blob, name: pic.name });
               used++;
               /* The count moves while a big zip is being read, because a
                * progress number that only appears at the end is not a
@@ -275,7 +280,7 @@ export default function FromMine({
         /* Named one at a time for a handful, counted for a folder - a
          * flicker of two hundred file names tells nobody anything. */
         setReading(files.length > 12 ? `${loose} pictures in` : file.name);
-        try { const t = await thumbOf(file); got.push({ thumb: t.url, sig: t.sig, file, name: file.name }); }
+        try { const t = await thumbOf(file); got.push({ thumb: t.url, sig: t.sig, face: t.face, file, name: file.name }); }
         catch { /* one picture that will not open is not a bad folder */ }
       }
 
@@ -355,6 +360,33 @@ export default function FromMine({
       count: g.members.length,
       full: () => fullOf(g.pick),
     }));
+  }, [shots]);
+
+  /* THE THREE BEST PICTURES OF HER FACE, FROM THREE DIFFERENT OUTFITS.
+   *
+   * Spread across groups on purpose. The three sharpest frames in a
+   * folder are usually three frames of the same minute of the same
+   * shoot, which registers her from one angle three times - and that
+   * shows up the moment she turns her head in a clip. One per outfit is
+   * three different days, three different lights, one face. */
+  const faces: Face[] = useMemo(() => {
+    if (!shots.length) return [];
+    const groups = shots.length < 2
+      ? [{ members: shots, pick: shots[0], signature: shots[0].sig }]
+      : groupBy(shots, shots.map((x) => x.sig), SAME_OUTFIT);
+
+    const best = groups
+      .map((g) => [...g.members].sort((a, b) => b.face - a.face)[0])
+      .filter(Boolean)
+      .sort((a, b) => b.face - a.face);
+
+    /* Where there is only one outfit in the folder, fall back to the
+     * three best frames of it rather than handing back one. */
+    const spread = best.length >= 3
+      ? best.slice(0, 3)
+      : [...shots].sort((a, b) => b.face - a.face).slice(0, 3);
+
+    return spread.map((shot) => ({ thumb: shot.thumb, full: () => fullOf(shot) }));
   }, [shots]);
 
   const go = async () => {
@@ -478,8 +510,14 @@ export default function FromMine({
             </Btn>
           </Row>
 
-          {racks.length > 1 && onRail ? (
-            <BuildRail racks={racks} onDone={onRail} />
+          {onRail && (racks.length > 1 || faces.length > 1) ? (
+            <Separate
+              name={name}
+              racks={racks}
+              faces={faces}
+              onHer={onEverything}
+              onDone={onRail}
+            />
           ) : null}
 
           {made > 0 ? (

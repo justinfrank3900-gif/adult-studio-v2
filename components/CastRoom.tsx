@@ -15,7 +15,7 @@
 // every shot. They do not override the picture. The picture wins, always.
 // They are there for the parts a 400x600 jpeg cannot carry.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { T } from '@/lib/tokens';
 import { Btn, Eyebrow, Lead, Panel, Title } from './kit';
 import { Area, Empty, Field, Grid, Pick, Row, Says, Tile, Working } from './parts';
@@ -104,6 +104,9 @@ function NewPerformer({ lib, onDone, onCancel }: {
   const [look, setLook] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [says, setSays] = useState<string | null>(null);
+  /* Held through the run so the screen can land on her at the end rather
+   * than navigating away mid-build and unmounting the thing building. */
+  const madeHer = useRef<string | null>(null);
 
   const add = async () => {
     setBusy('add'); setSays(null);
@@ -162,6 +165,69 @@ function NewPerformer({ lib, onDone, onCancel }: {
     }
   };
 
+  /**
+   * The whole shoot at once: she is made, kept and registered.
+   *
+   * The DRAWING COMES BEFORE SHE EXISTS, same as the single press does,
+   * and for the same reason: the provider refuses photographs for real
+   * reasons, and creating her first would leave a nameless empty
+   * performer on the books every time it did. She is created the moment
+   * the first picture comes back and the rest are filed under her.
+   *
+   * One refusal in three is not a failure. Two good pictures still make a
+   * performer and still register, which is why each is tried on its own
+   * and only an empty hand at the end is an error.
+   */
+  const everything = async (shots: { image: string; direction: string }[]): Promise<number> => {
+    if (!name.trim()) throw new Error('Give her a name first - the pictures get filed under it.');
+    let her: Identity | null = null;
+    const theirs: string[] = [];
+    let trouble: string | null = null;
+
+    for (const shot of shots) {
+      try {
+        const drawn = await make({
+          what: 'still',
+          prompt: [look.trim(), shot.direction].filter(Boolean).join(' '),
+          identity_id: null,
+          reference_image: shot.image,
+          label: `${name.trim()}_from_mine`,
+          aspect: '9:16',
+        });
+        if (!her) her = await addPerformer(name.trim(), look.trim());
+        await keepStill({
+          identityId: her.id,
+          spicyUrl: drawn.provider_url,
+          ourUrl: drawn.url,
+          storagePath: drawn.path,
+          label: 'From my own picture',
+          angle: 'from_mine',
+          masterRef: theirs.length === 0,
+          extra: { from: 'upload' },
+        });
+        theirs.push(drawn.provider_url);
+      } catch (e) {
+        if (!trouble) trouble = e instanceof Error ? e.message : 'One picture was refused.';
+      }
+    }
+
+    if (!her || !theirs.length) {
+      throw new Error(trouble || 'None of those pictures could be drawn from, so she was not made.');
+    }
+
+    /* Registering is what holds her face through video, and it is free
+     * beyond the pictures already made - but a failure here is not worth
+     * losing a performer who otherwise exists. */
+    try {
+      const id = await registerCharacter(her.name, theirs.slice(0, 3));
+      await savePerformer(her.id, { provider_character_id: id });
+    } catch { /* she is still hers, just not named at their end yet */ }
+
+    madeHer.current = her.id;
+    await lib.reload();
+    return theirs.length;
+  };
+
   return (
     <>
       <Eyebrow>Pornstars</Eyebrow>
@@ -200,7 +266,18 @@ function NewPerformer({ lib, onDone, onCancel }: {
           and it becomes her anchor - every shot after it holds that face.
           Nothing is added to the books unless the picture works.
         </p>
-        <FromMine name={name} busy={busy !== null} onMade={fromMine} onRail={() => { void lib.reload(); }} />
+        <FromMine
+          name={name}
+          busy={busy !== null}
+          onMade={fromMine}
+          onEverything={everything}
+          onRail={() => {
+            /* The whole run is finished by the time this lands, so this
+             * is the first safe moment to leave the screen. */
+            void lib.reload();
+            if (madeHer.current) onDone(madeHer.current);
+          }}
+        />
         {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
       </Panel>
     </>
@@ -324,6 +401,58 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
   };
 
   /**
+   * The whole shoot, onto a performer who already exists.
+   *
+   * Same as the new-performer run except there is nobody to create: the
+   * pictures are filed under her, and she is registered at the end from
+   * the best three the provider has made of her - which may include ones
+   * that were already there.
+   */
+  const everything = async (shots: { image: string; direction: string }[]): Promise<number> => {
+    const fresh: string[] = [];
+    let trouble: string | null = null;
+
+    for (const shot of shots) {
+      try {
+        const drawn = await make({
+          what: 'still',
+          prompt: [look.trim(), shot.direction].filter(Boolean).join(' '),
+          identity_id: who.id,
+          reference_image: shot.image,
+          label: `${who.name}_from_mine`,
+          aspect: '9:16',
+        });
+        await keepStill({
+          identityId: who.id,
+          spicyUrl: drawn.provider_url,
+          ourUrl: drawn.url,
+          storagePath: drawn.path,
+          label: 'From my own picture',
+          angle: 'from_mine',
+          /* Only if she had nothing to anchor on before. Quietly moving
+           * the anchor of a performer who already has one would change
+           * every picture after it without saying so. */
+          masterRef: !seed && fresh.length === 0,
+          extra: { from: 'upload' },
+        });
+        fresh.push(drawn.provider_url);
+      } catch (e) {
+        if (!trouble) trouble = e instanceof Error ? e.message : 'One picture was refused.';
+      }
+    }
+
+    if (!fresh.length) throw new Error(trouble || 'None of those pictures could be drawn from.');
+
+    try {
+      const id = await registerCharacter(who.name, [...fresh, ...hersAtTheProvider].slice(0, 3));
+      await savePerformer(who.id, { provider_character_id: id });
+    } catch { /* her pictures are hers either way */ }
+
+    await lib.reload();
+    return fresh.length;
+  };
+
+  /**
    * Register her with the provider.
    *
    * Up to three of her own pictures become a character, and the id that
@@ -415,7 +544,13 @@ function Sheet({ lib, who, onBack }: { lib: Library; who: Identity; onBack: () =
 
       <Panel style={{ marginBottom: 18 }}>
         <Eyebrow>Build her from my own</Eyebrow>
-        <FromMine name={who.name} busy={busy !== null} onMade={fromMine} onRail={() => { void lib.reload(); }} />
+        <FromMine
+          name={who.name}
+          busy={busy !== null}
+          onMade={fromMine}
+          onEverything={everything}
+          onRail={() => { void lib.reload(); }}
+        />
         {busy === 'mine' ? <Working>Drawing her. About half a minute.</Working> : null}
       </Panel>
 
