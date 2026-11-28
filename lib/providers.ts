@@ -345,17 +345,51 @@ export async function adultGenerateVideo(opts: {
     throw new Error('The clip timed out waiting for the provider.');
   };
 
+  /* THEIR FOUR SHAPES, AND ONLY THEIR FOUR SHAPES.
+   *
+   * The video endpoint does not take a bag of fields - it takes one of a
+   * few exact combinations, and mixing two of them is a refusal. Their
+   * own words, when this got it wrong:
+   *
+   *   "spicy-motion-3 takes aspect_ratio for text-to-video only: with a
+   *    first frame or a clip the output follows the source."
+   *
+   * Which is obvious once said. A picture already has a shape; asking for
+   * a different one is asking it to be two shapes. The build used to send
+   * aspect_ratio with everything, so every clip from a still was refused.
+   *
+   *   1. TEXT ONLY            prompt + aspect_ratio
+   *   2. A FIRST FRAME        image_url, and nothing else alongside it -
+   *                           no character, no references, no aspect
+   *   3. A CHARACTER          character + prompt; the model picks framing
+   *   4. CARRYING ON A CLIP   video_url + prompt, shape follows the clip
+   *
+   * Decided here rather than by the caller, because these are the
+   * provider's rules and belong next to the call that has to obey them. */
+  const firstFrame = opts.referenceImageUrl && opts.referenceImageUrl.includes('spicyapi.com')
+    ? opts.referenceImageUrl
+    : null;
+
   const first: Record<string, unknown> = {
     model,
     prompt: opts.prompt,
     resolution: '720P',
     duration: Math.min(5, target),
-    aspect_ratio: '9:16',
   };
   if (opts.action) first.action = opts.action;
-  if (opts.character) first.character = opts.character;
-  if (opts.referenceImageUrl && opts.referenceImageUrl.includes('spicyapi.com')) {
-    first.image_url = opts.referenceImageUrl;
+
+  if (opts.character) {
+    /* 3. She is registered, so she is named rather than drawn from a
+     * still - which is the stronger hold on a face anyway. The first
+     * frame is deliberately NOT sent with her: their rules allow a
+     * character or a first frame, not both. */
+    first.character = opts.character;
+  } else if (firstFrame) {
+    /* 2. Alone. Anything else beside it is a refusal. */
+    first.image_url = firstFrame;
+  } else {
+    /* 1. Nothing to follow, so the shape has to be asked for. */
+    first.aspect_ratio = '9:16';
   }
 
   let current = await run(first);
@@ -363,13 +397,14 @@ export async function adultGenerateVideo(opts: {
 
   while (made < target && current.url) {
     const chunk = Math.min(5, target - made);
+    /* 4. Carrying on from what was just rendered. The shape follows the
+     * clip, so asking for one here is the same refusal again. */
     const more: Record<string, unknown> = {
       model,
       prompt: opts.prompt,
       resolution: '720P',
       duration: made + chunk,
       video_url: current.url,
-      aspect_ratio: '9:16',
     };
     if (opts.character) more.character = opts.character;
     current = await run(more);
