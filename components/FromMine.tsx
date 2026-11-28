@@ -50,11 +50,15 @@ const THUMB_SIDE = 300;
 const THUMB_QUALITY = 0.72;
 
 const MOST_FILES = 8;
-/** Pulled out of a zip. A folder bigger than this is a photo library, and
- *  nobody is choosing a face out of four hundred. */
-const MOST_IN_ZIP = 150;
-/** Shown in the grid at once, across everything picked. */
-const MOST_SHOWN = 120;
+/** Pulled out of a zip. Set above a real folder rather than at a round
+ *  number: the first set that came through this was 218 pictures off a
+ *  phone, and a cap that quietly drops a third of somebody's photographs
+ *  is worse than a slow page. */
+const MOST_IN_ZIP = 400;
+/** Shown in the grid at once, across everything picked. At 300px a piece
+ *  this is a few megabytes, which is the whole reason they are
+ *  thumbnails. */
+const MOST_SHOWN = 300;
 
 type Shot = {
   thumb: string;
