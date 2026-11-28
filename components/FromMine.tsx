@@ -32,11 +32,13 @@
 // thumbnail with the original file behind it, and only the picked one is
 // scaled up and sent. Choosing costs nothing; sending costs one picture.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
 import { T } from '@/lib/tokens';
 import { Btn } from './kit';
 import { Area, Grid, Row, Says, Tile, Working } from './parts';
 import { picturesInZip } from '@/lib/unzip';
+import { filesDropped } from '@/lib/dropped';
 
 /** The provider caps a request body at 4.5MB, and a phone photograph is
  *  bigger than that on its own. Scaled down before it is sent - a face at
@@ -49,7 +51,10 @@ const JPEG_QUALITY = 0.86;
 const THUMB_SIDE = 300;
 const THUMB_QUALITY = 0.72;
 
-const MOST_FILES = 8;
+/** Clips, not files. Six frames have to be seeked out of each one and
+ *  that takes real seconds, so a folder with thirty videos in it would
+ *  look like a hung tab rather than like work being done. */
+const MOST_CLIPS = 3;
 /** Pulled out of a zip. Set above a real folder rather than at a round
  *  number: the first set that came through this was 218 pictures off a
  *  phone, and a cap that quietly drops a third of somebody's photographs
@@ -164,19 +169,30 @@ export default function FromMine({
   const [found, setFound] = useState<string | null>(null);
   const [made, setMade] = useState(0);
   const [sending, setSending] = useState(false);
+  const [over, setOver] = useState(false);
 
-  const pick = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const pick = async (chosenFiles: File[] | FileList | null) => {
+    const files = chosenFiles ? Array.from(chosenFiles) : [];
+    if (files.length === 0) return;
     setSays(null); setFound(null); setShots([]); setMade(0);
     const got: Shot[] = [];
     const notes: string[] = [];
+    /* Videos are counted on their own. Six frames have to be seeked out of
+     * each one, which takes real seconds, so three dropped clips is a
+     * reasonable afternoon and thirty is a hung tab. Pictures are cheap by
+     * comparison and are capped by the grid instead. */
+    let clips = 0;
+    let loose = 0;
     try {
-      for (const file of Array.from(files).slice(0, MOST_FILES)) {
+      for (const file of files) {
         if (got.length >= MOST_SHOWN) break;
         if (file.size > 500 * 1024 * 1024) {
           throw new Error(`${file.name} is over 500MB. Trim it down - nothing that big is needed here.`);
         }
-        setReading(file.name);
+
+        const isZip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+        const isPicture = file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(file.name);
 
         /* A ZIP IS A FOLDER THAT TRAVELLED.
          *
@@ -184,7 +200,8 @@ export default function FromMine({
          * its own, so a folder of holiday photographs never crosses the
          * wire, and his pictures never touch a server that has no use for
          * them. */
-        if (/\.zip$/i.test(file.name) || file.type === 'application/zip') {
+        if (isZip) {
+          setReading(file.name);
           const inside = await picturesInZip(file, MOST_IN_ZIP);
           let used = 0;
           for (const pic of inside.pictures) {
@@ -209,17 +226,30 @@ export default function FromMine({
           continue;
         }
 
-        if (file.type.startsWith('video/')) {
+        if (isVideo) {
+          if (clips >= MOST_CLIPS) continue;
+          clips++;
+          setReading(file.name);
           got.push(...await framesFromVideo(file));
           continue;
         }
 
-        got.push({ thumb: await thumbOf(file), file, name: file.name });
+        if (!isPicture) continue;
+
+        loose++;
+        /* Named one at a time for a handful, counted for a folder - a
+         * flicker of two hundred file names tells nobody anything. */
+        setReading(files.length > 12 ? `${loose} pictures in` : file.name);
+        try { got.push({ thumb: await thumbOf(file), file, name: file.name }); }
+        catch { /* one picture that will not open is not a bad folder */ }
       }
 
-      if (got.length === 0) throw new Error('Nothing could be read out of those files.');
+      if (got.length === 0) {
+        throw new Error('There were no pictures, clips or zips in that. Photographs (jpg, png, webp), an MP4, or a zip of them.');
+      }
       setShots(got.slice(0, MOST_SHOWN));
       setChosen(0);
+      if (!notes.length && loose > 12) notes.push(`${got.length} pictures in.`);
       if (notes.length) setFound(notes.join(' '));
     } catch (e) {
       /* Whatever did read is kept rather than thrown away with the one that
@@ -230,6 +260,53 @@ export default function FromMine({
     } finally {
       setReading(null);
       if (input.current) input.current.value = '';
+    }
+  };
+
+  /* ------------------------------------------------------------ dragging
+   *
+   * dragover HAS to be cancelled or the browser refuses the drop and then
+   * navigates the whole page to the file instead, losing everything on
+   * screen. The counter is there because dragging across a child element
+   * fires leave on the parent - without it the highlight flickers off the
+   * moment the pointer crosses the text inside the zone. */
+  const depth = useRef(0);
+
+  /* MISSING THE ZONE MUST NOT COST HIM THE PAGE.
+   *
+   * A file dropped anywhere a browser is not expecting one makes it
+   * NAVIGATE to that file, which throws away the screen, the pictures
+   * already read and anything typed. Cancelled across the window - but
+   * only for drags that actually carry files, so text can still be
+   * dragged into the boxes. */
+  useEffect(() => {
+    const carriesFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types || []).includes('Files');
+    const stop = (e: DragEvent) => { if (carriesFiles(e)) e.preventDefault(); };
+    window.addEventListener('dragover', stop);
+    window.addEventListener('drop', stop);
+    return () => {
+      window.removeEventListener('dragover', stop);
+      window.removeEventListener('drop', stop);
+    };
+  }, []);
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    depth.current = 0;
+    setOver(false);
+    if (busy || sending || reading !== null) return;
+    setReading('reading what you dropped');
+    try {
+      const files = await filesDropped(e.dataTransfer, MOST_IN_ZIP);
+      if (!files.length) {
+        setReading(null);
+        setSays('Nothing came through with that drop. Try the button instead.');
+        return;
+      }
+      await pick(files);
+    } catch {
+      setReading(null);
+      setSays('That could not be read off the drop. Try the button instead.');
     }
   };
 
@@ -263,20 +340,48 @@ export default function FromMine({
         style={{ display: 'none' }}
       />
 
-      <Row>
-        <Btn onClick={() => input.current?.click()} disabled={working || reading !== null}>
-          {reading !== null ? 'Reading them' : shots.length ? 'Use different files' : 'Upload stills, a zip of them, or a video'}
-        </Btn>
-      </Row>
-
-      <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
-        Pick as many pictures as you like at once, drop in a zip of a whole
-        folder, or use a clip that six frames are pulled out of here on this
-        machine. What comes back is a NEW picture of that person drawn by the
-        studio, not a copy of yours - the provider does not accept an
-        uploaded photograph as a picture it can edit, so this is the one way
-        in. Everything after it works on her normally.
-      </span>
+      {/* THE DROP ZONE IS ALSO THE BUTTON.
+        *
+        * Two separate controls for the same job - a button here, a dashed
+        * rectangle there - is how somebody ends up dragging a folder onto
+        * the button and watching the page navigate away. One target, both
+        * ways in, and clicking anywhere on it opens the file dialog. */}
+      <div
+        onDragEnter={(e) => { e.preventDefault(); depth.current += 1; setOver(true); }}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+        onDragLeave={(e) => { e.preventDefault(); depth.current -= 1; if (depth.current <= 0) { depth.current = 0; setOver(false); } }}
+        onDrop={onDrop}
+        onClick={() => { if (!working && reading === null) input.current?.click(); }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.current?.click(); } }}
+        style={{
+          border: `2px dashed ${over ? T.gold : T.line}`,
+          borderRadius: 14,
+          background: over ? 'rgba(212,175,85,0.07)' : T.raised,
+          padding: '26px 22px',
+          textAlign: 'center',
+          cursor: working || reading !== null ? 'default' : 'pointer',
+          transition: 'border-color 120ms ease, background 120ms ease',
+        }}
+      >
+        <div style={{
+          fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
+          color: over ? T.gold : T.text, marginBottom: 8,
+        }}>
+          {over
+            ? 'Let go'
+            : reading !== null
+              ? 'Reading them'
+              : shots.length
+                ? 'Drop different ones, or click to pick'
+                : 'Drag her pictures in here'}
+        </div>
+        <div style={{ fontSize: 13.5, color: T.textDim, lineHeight: 1.6, maxWidth: '54ch', margin: '0 auto' }}>
+          A folder, a zip, as many photographs as you like, or a clip - straight
+          off your desktop. Or click to pick them the usual way.
+        </div>
+      </div>
 
       <span style={{ fontSize: 13, color: T.textDim, lineHeight: 1.6, maxWidth: '62ch' }}>
         A hundred pictures do not make a closer likeness than one does - the
