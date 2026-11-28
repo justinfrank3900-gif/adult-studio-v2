@@ -94,3 +94,26 @@ export const demoLessons = [
   { id: 'l2', module_id: 'm1', title: 'Writing limits that mean something', sort_order: 2, summary: 'Specific beats comprehensive.', source_name: null, blocks: [] },
   { id: 'l3', module_id: 'm2', title: 'The morning protocol', sort_order: 1, summary: 'What the first ten minutes of the day do for the other twenty-three hours.', source_name: null, blocks: [] },
 ];
+
+/* A companion, so the call screen can be looked at without signing in.
+ * She has notes already, because the empty case and the full case put very
+ * different amounts of text on that panel. */
+export const demoCompanions = [
+  {
+    id: 'c1',
+    identity_id: 'd1',
+    name: 'Samantha',
+    persona: 'Twenty-seven, lives alone, works nights. Dry, teasing, says what she means. Gets attached faster than she admits.',
+    greeting: 'you took your time',
+    memory: 'His name is Justin. Runs a dealer software company, works late most nights.\nHas a dog called Moose.\nHates being asked how work is going.',
+    model: 'spicy-companion-1',
+    call_voice: '',
+    call_model: 'spicy-live-1',
+  },
+];
+
+export const demoMessages = [
+  { id: 'm1', role: 'assistant', content: 'you took your time', audio_url: null, created_at: '2026-11-20T22:04:00Z' },
+  { id: 'm2', role: 'user', content: 'long day', audio_url: null, created_at: '2026-11-20T22:05:00Z' },
+  { id: 'm3', role: 'assistant', content: 'they all are lately. tell me one good thing that happened', audio_url: null, created_at: '2026-11-20T22:05:20Z' },
+];

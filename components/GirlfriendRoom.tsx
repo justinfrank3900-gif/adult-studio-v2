@@ -21,6 +21,8 @@ import { Btn, Eyebrow, Lead, Panel, Title } from './kit';
 import { Area, Empty, Field, Grid, Pick, Row, Says, Tile, Working } from './parts';
 import { faceOf, token } from '@/lib/data';
 import { supa, DEALER_ID } from '@/lib/supabase';
+import { DEMO, demoCompanions, demoMessages } from '@/lib/demo';
+import CallPanel from './CallPanel';
 import type { Library } from './Studio';
 
 type Companion = {
@@ -31,6 +33,8 @@ type Companion = {
   greeting: string;
   memory: string;
   model: string;
+  call_voice: string | null;
+  call_model: string | null;
 };
 
 type Message = { id: string; role: string; content: string; audio_url: string | null; created_at: string };
@@ -48,9 +52,10 @@ export default function GirlfriendRoom({ lib }: { lib: Library }) {
   const [says, setSays] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
+    if (DEMO) { setAll(demoCompanions as Companion[]); setLoading(false); return; }
     const { data, error } = await supa()
       .from('adult_companions')
-      .select('id,identity_id,name,persona,greeting,memory,model')
+      .select('id,identity_id,name,persona,greeting,memory,model,call_voice,call_model')
       .eq('dealer_id', DEALER_ID)
       .order('created_at', { ascending: false });
     if (error) setSays(`The companions could not be read: ${error.message}`);
@@ -176,6 +181,7 @@ function Chat({ lib, her, onBack, onChanged }: {
   const hasVoice = Boolean(identity?.voice_id);
 
   const reload = useCallback(async () => {
+    if (DEMO) { setMessages(demoMessages as Message[]); return; }
     const { data, error } = await supa()
       .from('adult_messages')
       .select('id,role,content,audio_url,created_at')
@@ -302,6 +308,11 @@ function Chat({ lib, her, onBack, onChanged }: {
           </span>
         </div>
       </div>
+
+      <CallPanel
+        her={her}
+        onMemory={(m) => { setMemory(m); void onChanged(); }}
+      />
 
       {showHer ? (
         <Panel style={{ marginBottom: 16 }}>
